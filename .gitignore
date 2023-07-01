@@ -13,6 +13,9 @@ coverage
 coverage.json
 typechain
 
+#emacs
+*.~undo-tree~
+
 #Hardhat files
 cache
 artifacts
@@ -76,8 +79,15 @@ typings/
 # Output of 'npm pack'
 *.tgz
 
-# Yarn Integrity file
+# Yarn - as per https://yarnpkg.com/getting-started/qa (not using zero-installs)
 .yarn-integrity
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
 
 # dotenv environment variables file
 .env
