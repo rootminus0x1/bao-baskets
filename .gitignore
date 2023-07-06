@@ -7,14 +7,7 @@ yarn-error.log*
 lerna-debug.log*
 
 .idea
-node_modules
-.env
-coverage
-coverage.json
 typechain
-
-#emacs
-*.~undo-tree~
 
 #Hardhat files
 cache
@@ -34,6 +27,7 @@ lib-cov
 
 # Coverage directory used by tools like istanbul
 coverage
+coverage.json
 *.lcov
 
 # nyc test coverage
