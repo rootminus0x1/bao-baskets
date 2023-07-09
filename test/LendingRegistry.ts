@@ -5,9 +5,11 @@ import {
 import { anyValue } from "@nomicfoundation/hardhat-chai-matchers/withArgs";
 import { expect } from "chai";
 import { ethers } from "hardhat";
+import { BigNumber } from "ethers";
 
 const zeroAddress = '0x0000000000000000000000000000000000000000';
 const zeroBytes32 = '0x0000000000000000000000000000000000000000000000000000000000000000';
+const zeroBigNumber = BigNumber.from(0);
 
 describe("LendingRegistry", function () {
   // We define a fixture to reuse the same setup in every test.
@@ -33,10 +35,10 @@ describe("LendingRegistry", function () {
 
       const bestApr = await lendingRegistry.getBestApr(zeroAddress, []);
       
-      expect(bestApr[0]).to.equal(0.0);
+      expect(bestApr[0]).to.eql(zeroBigNumber);
       expect(bestApr[1]).to.equal(zeroBytes32);
-
-      expect(bestApr.apr).to.equal(0.0);
+      // can access the result by array index or by field name
+      expect(bestApr.apr).to.eql(zeroBigNumber);
       expect(bestApr.protocol).to.equal(zeroBytes32);
     });
 
