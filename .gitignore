@@ -17,6 +17,7 @@ cache_hardhat/
 out/
 forge-cache/
 bin/
+lcov.info
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
