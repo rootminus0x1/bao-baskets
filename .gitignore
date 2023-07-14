@@ -7,9 +7,6 @@ yarn-error.log*
 lerna-debug.log*
 
 .idea
-# typechain type declarations
-typechain-types/
-typechain/
 
 #Hardhat files
 cache
@@ -50,11 +47,12 @@ build/Release
 # Dependency directories
 node_modules/
 jspm_packages/
+lib/
 
-# TypeScript v1 declaration files
+# TypeScript declaration files, cache
 typings/
-
-# TypeScript cache
+typechain-types/
+typechain/
 *.tsbuildinfo
 
 # Optional npm cache directory
