@@ -13,10 +13,10 @@ cache
 artifacts
 
 # foundry files
-cache_hardhat
-out
-forge-cache
-bin/test/
+cache_hardhat/
+out/
+forge-cache/
+bin/
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
