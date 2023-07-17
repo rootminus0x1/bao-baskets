@@ -1,14 +1,16 @@
 {
-  "solidity.packageDefaultDependenciesContractsDirectory": "src",
+  "solidity.packageDefaultDependenciesContractsDirectory": "contracts",
   "solidity.packageDefaultDependenciesDirectory": "lib",
   "solidity.remappings": [
-    "forge-std/=lib/forge-std/src/"
+    "forge-std/=lib/forge-std/src/",
+    "contracts/=contracts"
   ],
   "solidity.compileUsingRemoteVersion": "v0.7.1+commit.f4a555be",
   "solidity.defaultCompiler": "remote",
   "editor.formatOnSave": true,
   "[solidity]": {
-    "editor.defaultFormatter": "JuanBlanco.solidity"
+    //"editor.defaultFormatter": "JuanBlanco.solidity"
+    "editor.defaultFormatter": "NomicFoundation.hardhat-solidity",
   },
   "solidity.formatter": "forge",
   "coverage-gutters.showGutterCoverage": false,

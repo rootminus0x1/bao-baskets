@@ -7,7 +7,7 @@ pragma solidity ^0.7.1;
 import {console} from "forge-std/console.sol";
 import {Test} from "forge-std/Test.sol";
 
-import {LendingRegistry} from "../../contracts/LendingRegistry.sol";
+import {LendingRegistry} from "contracts/LendingRegistry.sol";
 
 contract UnititialisedLendingRegistry is Test {
     LendingRegistry private lendingRegistry;
@@ -51,11 +51,5 @@ contract UnititialisedLendingRegistry is Test {
         vm.expectRevert("Ownable: caller is not the owner");
         vm.prank(address(0));
         lendingRegistry.setWrappedToProtocol(zeroAddress, zeroBytes32);
-    }
-}
-
-contract LendingREgistryTest is UnititialisedLendingRegistry {
-    function setUp() public override {
-        UnititialisedLendingRegistry.setUp();
     }
 }

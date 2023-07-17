@@ -12,7 +12,7 @@
             "runtimeExecutable": "yarn",
             "runtimeArgs": [
                 "testhh",
-                "${workspaceFolder}/test/LendingRegistry.ts"
+                "${file}"
             ]
         }
     ]
