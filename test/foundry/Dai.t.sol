@@ -3,7 +3,7 @@
  */
 
 // hevm: flattened sources of /nix/store/8xb41r4qd0cjb63wcrxf1qmfg88p0961-dss-6fd7de0/src/dai.sol
-pragma solidity =0.5.12;
+pragma solidity >=0.5.12;
 
 ////// /nix/store/8xb41r4qd0cjb63wcrxf1qmfg88p0961-dss-6fd7de0/src/lib.sol
 // This program is free software: you can redistribute it and/or modify
@@ -29,7 +29,7 @@ contract LibNote {
     modifier note( // end of memory ensures zero
     ) {
         _;
-        assembly {
+        /*        assembly {
             // log an 'anonymous' event with a constant 6 words of calldata
             // and four indexed topics: selector, caller, arg1 and arg2
             let mark := msize
@@ -46,6 +46,7 @@ contract LibNote {
                 calldataload(36) // arg2
             )
         }
+        */
     }
 }
 
@@ -114,8 +115,9 @@ contract Dai is LibNote {
     // bytes32 public constant PERMIT_TYPEHASH = keccak256("Permit(address holder,address spender,uint256 nonce,uint256 expiry,bool allowed)");
     bytes32 public constant PERMIT_TYPEHASH = 0xea2aa0a1be11a07ed86d755c93467f4f82362b452371d1ba94d1715123511acb;
 
-    constructor(uint256 chainId_) public {
+    constructor(uint256 chainId_) {
         wards[msg.sender] = 1;
+        /*
         DOMAIN_SEPARATOR = keccak256(
             abi.encode(
                 keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
@@ -125,6 +127,7 @@ contract Dai is LibNote {
                 address(this)
             )
         );
+        */
     }
 
     // --- Token ---
@@ -134,7 +137,7 @@ contract Dai is LibNote {
 
     function transferFrom(address src, address dst, uint256 wad) public returns (bool) {
         require(balanceOf[src] >= wad, "Dai/insufficient-balance");
-        if (src != msg.sender && allowance[src][msg.sender] != uint256(-1)) {
+        if (src != msg.sender && allowance[src][msg.sender] != type(uint256).max) {
             require(allowance[src][msg.sender] >= wad, "Dai/insufficient-allowance");
             allowance[src][msg.sender] = sub(allowance[src][msg.sender], wad);
         }
@@ -152,7 +155,7 @@ contract Dai is LibNote {
 
     function burn(address usr, uint256 wad) external {
         require(balanceOf[usr] >= wad, "Dai/insufficient-balance");
-        if (usr != msg.sender && allowance[usr][msg.sender] != uint256(-1)) {
+        if (usr != msg.sender && allowance[usr][msg.sender] != type(uint256).max) {
             require(allowance[usr][msg.sender] >= wad, "Dai/insufficient-allowance");
             allowance[usr][msg.sender] = sub(allowance[usr][msg.sender], wad);
         }
@@ -201,9 +204,9 @@ contract Dai is LibNote {
 
         require(holder != address(0), "Dai/invalid-address-0");
         require(holder == ecrecover(digest, v, r, s), "Dai/invalid-permit");
-        require(expiry == 0 || now <= expiry, "Dai/permit-expired");
+        require(expiry == 0 || block.timestamp <= expiry, "Dai/permit-expired");
         require(nonce == nonces[holder]++, "Dai/invalid-nonce");
-        uint256 wad = allowed ? uint256(-1) : 0;
+        uint256 wad = allowed ? type(uint256).max : 0;
         allowance[holder][spender] = wad;
         emit Approval(holder, spender, wad);
     }
