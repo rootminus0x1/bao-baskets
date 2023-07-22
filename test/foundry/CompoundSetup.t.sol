@@ -37,9 +37,9 @@ contract TestCompound is ChainState, Deployed, Useful, TestData {
         // if (logging) console.log("LOG = '%s'", vm.envString("LOG"));
         if (logging) console.log(vm.envString("MAINNET_RPC_URL"));
 
-        mainnetFork = vm.createFork(vm.envString("MAINNET_RPC_URL"));
-        vm.selectFork(mainnetFork);
-        vm.rollFork(BLOCKNUMBER);
+        //mainnetFork = vm.createFork(vm.envString("MAINNET_RPC_URL"));
+        //vm.selectFork(mainnetFork);
+        //vm.rollFork(BLOCKNUMBER);
     }
 
     function test_Logic() public {
