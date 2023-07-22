@@ -32,6 +32,10 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
   }
 });
 
+task("compilers", "Prints the compiler list and setup", async (taskArgs, hre) => {
+  hre.config.solidity.compilers.forEach((compiler) => { console.log(compiler); })
+});
+
 task("wrappedtoprotocol", "Prints the list of wrappedtoprotocol, use with --network <network containing a forked, e.g. mainnet>", async (taskArgs, hre) => {
   const LendingRegistryAddress = '0x08a2b7D713e388123dc6678168656659d297d397';
 
@@ -164,6 +168,15 @@ const config: HardhatUserConfig = {
   },
   solidity: {
     compilers: [
+      {
+        version: "0.5.12",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200
+          }
+        },
+      },
       {
         version: "0.7.1",
         settings: {
