@@ -1,8 +1,37 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma experimental ABIEncoderV2;
-pragma solidity ^0.7.1;
+pragma solidity >=0.5.1;
+
+import {Test} from "forge-std/Test.sol";
+
+import {Dai} from "./Dai.t.sol";
+
+contract ChainFork is Test {
+    uint256 public mainnetFork;
+
+    constructor() {
+        mainnetFork = vm.createFork(vm.envString("MAINNET_RPC_URL"));
+        vm.selectFork(mainnetFork);
+        assertEq(vm.activeFork(), mainnetFork);
+    }
+}
+
+contract ChainState is ChainFork {
+    uint256 public constant BLOCKNUMBER = 17697898;
+
+    constructor() {
+        vm.rollFork(BLOCKNUMBER);
+    }
+
+    function test_RollIsGood() public {
+        assertEq(block.number, BLOCKNUMBER);
+    }
+}
 
 contract Deployed {
+    // Dai maker
+    address public constant DAIOWNER = address(0xdDb108893104dE4E1C6d0E47c42237dB4E617ACc);
+
     // deployed addresses for BAO
     address public constant OWNER = address(0xFC69e0a5823E2AfCBEb8a35d33588360F1496a00);
     // Recipe https://etherscan.io/address/0xac0fE9F363c160c281c81DdC49d0AA8cE04C02Eb

@@ -9,12 +9,10 @@ import {Test} from "forge-std/Test.sol";
 
 import {LendingRegistry} from "contracts/LendingRegistry.sol";
 
-contract UnititialisedLendingRegistry is Test {
+import {TestData} from "./TestData.t.sol";
+
+contract UnititialisedLendingRegistry is Test, TestData {
     LendingRegistry private lendingRegistry;
-    address private zeroAddress = 0x0000000000000000000000000000000000000000;
-    address private nonZeroAddress = 0x0000000000000000000000000000000000000001;
-    bytes32 private zeroBytes32 = 0x0000000000000000000000000000000000000000000000000000000000000000;
-    uint256 private zeroBigNumber = 0;
 
     event WrappedToProtocolSet(address indexed wrapped, bytes32 indexed protocol);
 
@@ -40,6 +38,11 @@ contract UnititialisedLendingRegistry is Test {
         emit WrappedToProtocolSet(zeroAddress, zeroBytes32);
         // actual event
         lendingRegistry.setWrappedToProtocol(zeroAddress, zeroBytes32);
+
+        // TODO:
+        // event WrappedToUnderlyingSet(address indexed wrapped, address indexed underlying);
+        // event ProtocolToLogicSet(bytes32 indexed protocol, address indexed logic);
+        // event UnderlyingToProtocolWrappedSet(address indexed underlying, bytes32 indexed protocol, address indexed wrapped);
     }
 
     function testFail_CallerIsNotOwner() public {
