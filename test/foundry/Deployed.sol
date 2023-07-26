@@ -3,34 +3,72 @@ pragma experimental ABIEncoderV2;
 pragma solidity >=0.5.1;
 
 import {Test} from "forge-std/Test.sol";
+import {console2 as console} from "forge-std/console2.sol";
+
+import {LendingRegistry} from "contracts/LendingRegistry.sol";
 
 import {Dai} from "./Dai.t.sol";
 
-contract ChainFork is Test {
-    uint256 public mainnetFork;
+// TODO: move this to useful
+contract Logging is Test {
+    bool public logging = false;
+    bytes16 private constant _SYMBOLS = "0123456789abcdef";
 
-    constructor() {
-        mainnetFork = vm.createFork(vm.envString("MAINNET_RPC_URL"));
-        vm.selectFork(mainnetFork);
-        assertEq(vm.activeFork(), mainnetFork);
-    }
-}
-
-contract ChainState is ChainFork {
-    uint256 public constant BLOCKNUMBER = 17697898;
-
-    constructor() {
-        vm.rollFork(BLOCKNUMBER);
+    function setLogging(bool newVal) public {
+        logging = newVal;
     }
 
-    function test_RollIsGood() public {
-        assertEq(block.number, BLOCKNUMBER);
+    function toString(uint256 value, uint256 decimals) public pure returns (string memory result) {
+        // calculate the length of the result
+        uint256 length;
+        for (uint256 j = value; j != 0; j /= 10) {
+            length++;
+        }
+        if (decimals > 0) {
+            if (length > decimals) {
+                length++; // for the decimal point
+            } else {
+                length = decimals + 2; // "0." + "00..." prefix
+            }
+        }
+
+        string memory buffer = new string(length);
+        uint256 ptr;
+        /// @solidity memory-safe-assembly
+        assembly {
+            ptr := add(buffer, add(32, length))
+        }
+        uint256 digit = 0;
+        while (true) {
+            ptr--;
+            if (decimals > 0 && digit == decimals) {
+                /// @solidity memory-safe-assembly
+                assembly {
+                    mstore8(ptr, 46)
+                }
+                ptr--;
+                digit++;
+            }
+            digit++;
+            /// @solidity memory-safe-assembly
+            assembly {
+                mstore8(ptr, byte(mod(value, 10), _SYMBOLS))
+            }
+            value /= 10;
+            if (digit == length) break;
+        }
+        return buffer;
+    }
+
+    constructor() {
+        // logging = !streq(vm.envString("LOG"), "");
+        // if (logging) console.log("LOG = '%s'", vm.envString("LOG"));
     }
 }
 
 contract Deployed {
     // Dai maker
-    address public constant DAIOWNER = address(0xdDb108893104dE4E1C6d0E47c42237dB4E617ACc);
+    // address public constant DAIOWNER = address(0xdDb108893104dE4E1C6d0E47c42237dB4E617ACc);
 
     // deployed addresses for BAO
     address public constant OWNER = address(0xFC69e0a5823E2AfCBEb8a35d33588360F1496a00);
@@ -43,39 +81,24 @@ contract Deployed {
     // Basket Factory https://etherscan.io/address/0xe1e7634Cd2AED55C6aAA704299E735987f372b70
     address public constant BASKETFACTORY = address(0xe1e7634Cd2AED55C6aAA704299E735987f372b70);
     // AAVELendingStrategy	https://etherscan.io/address/0xD67730986FC37d55eCF5cCA0d2D854f4FCf5d876
-    address public constant AAVELENDINGSTRATEGY = address(0xD67730986FC37d55eCF5cCA0d2D854f4FCf5d876);
+    address public constant LENDINGLOGICAAVE = address(0xD67730986FC37d55eCF5cCA0d2D854f4FCf5d876);
     // CompoundLendingStrategy https://etherscan.io/address/0x5822D781503676b6a927eA841039465193CA213a
-    address public constant COMPOUNDLENDINGSTRATEGY = address(0x5822D781503676b6a927eA841039465193CA213a);
+    address public constant LENDINGLOGICCOMPOUND = address(0x5822D781503676b6a927eA841039465193CA213a);
     // bSTBL https://etherscan.io/address/0x5ee08f40b637417bcC9d2C51B62F4820ec9cF5D8
     address public constant BSTBL = address(0x5ee08f40b637417bcC9d2C51B62F4820ec9cF5D8);
     // bSTBL LendingManager https://etherscan.io/address/0x5C0AfEf620f512e2FA65C765A72fa46f9A41C6BD
     address public constant BSTBLLENDINGMANAGER = address(0x5C0AfEf620f512e2FA65C765A72fa46f9A41C6BD);
     // protocols
-    bytes32 public constant COMPOUNDPROTOCOL = 0x0000000000000000000000000000000000000000000000000000000000000001;
-    bytes32 public constant AAVEPROTOCOL = 0x0000000000000000000000000000000000000000000000000000000000000002;
-    bytes32 public constant SUSHIPROTOCOL = 0x0000000000000000000000000000000000000000000000000000000000000003;
-    bytes32 public constant YEARNPROTOCOL = 0x0000000000000000000000000000000000000000000000000000000000000004;
-
-    address public constant CUSDC = address(0x39AA39c021dfbaE8faC545936693aC917d5E7563);
+    bytes32 public constant PROTOCOLCOMPOUND = 0x0000000000000000000000000000000000000000000000000000000000000001;
+    bytes32 public constant PROTOCOLAAVE = 0x0000000000000000000000000000000000000000000000000000000000000002;
+    bytes32 public constant PROTOCOLKASHI = 0x0000000000000000000000000000000000000000000000000000000000000003;
 
     struct Token {
         string name;
         address addr;
     }
 
-    Token public AFEI = Token("aFEI", address(0x000000000000000000000000683923db55fead99a79fa01a27eec3cb19679cc3)); //2
-    Token public CDAI = Token("cDAI", address(0x0000000000000000000000005d3a536e4d6dbd6114cc1ead35777bab948e3643)); // 1
-    Token public ARAI = Token("aRAI", address(0x000000000000000000000000c9bc48c72154ef3e5425641a3c747242112a46af)); // 2
-    Token public AUSDC = Token("aUSDC", address(0x000000000000000000000000bcca60bb61934080951369a648fb03df4f96263c)); // 2
-    Token public AFRAX = Token("aFRAX", address(0x000000000000000000000000d4937682df3c8aef4fe912a96a74121c0829e664)); // 2
-    Token public CCOMP = Token("cCOMP", address(0x00000000000000000000000070e36f6bf80a52b3b46b3af8e106cc0ed743e8e4)); // 1
-    Token public AYFI = Token("aYFI", address(0x0000000000000000000000005165d24277cd063f5ac44efd447b27025e888f37)); // 2
-    Token public ACRV = Token("aCRV", address(0x0000000000000000000000008dae6cb04688c62d939ed9b68d32bc62e49970b1)); // 2
-    Token public XSUSHI = Token("xSUSHI", address(0x0000000000000000000000008798249c2e607446efb7ad49ec89dd1865ff4272)); // 3
-    Token public CAAVE = Token("cAAVE", address(0x000000000000000000000000e65cdb6479bac1e22340e4e755fae7e509ecd06c)); // 1
-    Token public ADAI = Token("aDAI", address(0x000000000000000000000000028171bca77440897b824ca71d1c56cac55b68a3)); // 2
-    Token public ASUSD = Token("aSUSD", address(0x0000000000000000000000006c5024cd4f8a59110119c56f8933403a539555eb)); // 2
-
+    // underlyings
     Token public FEI = Token("FEI", address(0x000000000000000000000000956f47f50a910163d8bf957cf5846d573e7f87ca));
     Token public DAI = Token("DAI", address(0x0000000000000000000000006b175474e89094c44da98b954eedeac495271d0f));
     Token public RAI = Token("RAI", address(0x00000000000000000000000003ab458634910aad20ef5f1c8ee96f1d6ac54919));
@@ -88,107 +111,51 @@ contract Deployed {
     Token public AAVE = Token("AAVE", address(0x0000000000000000000000007fc66500c84a76ad7e9c93437bfc5ac33e2ddae9));
     Token public SUSD = Token("sUSD", address(0x00000000000000000000000057ab1ec28d129707052df4df418d58a2d46d5f51));
 
-    /*
-    // LendingRegistry: mapping(address => bytes32) public wrappedToProtocol;
-    struct WrappedToProtocol {
-        address wrapped;
-        bytes32 protocol;
-    }
+    Token public LUSD = Token("LUSD", address(0x5f98805A4E8be255a32880FDeC7F6728C6568bA0));
 
-    WrappedToProtocol[] public wrappedToProtocol = [
-        WrappedToProtocol(AFEI.addr, AAVEPROTOCOL),
-        WrappedToProtocol(CDAI.addr, COMPOUNDPROTOCOL),
-        WrappedToProtocol(ARAI.addr, AAVEPROTOCOL),
-        WrappedToProtocol(AUSDC.addr, AAVEPROTOCOL),
-        WrappedToProtocol(AFRAX.addr, AAVEPROTOCOL),
-        WrappedToProtocol(CCOMP.addr, COMPOUNDPROTOCOL),
-        WrappedToProtocol(AYFI.addr, AAVEPROTOCOL),
-        WrappedToProtocol(ACRV.addr, AAVEPROTOCOL),
-        WrappedToProtocol(XSUSHI.addr, SUSHIPROTOCOL),
-        WrappedToProtocol(CAAVE.addr, COMPOUNDPROTOCOL),
-        WrappedToProtocol(ADAI.addr, AAVEPROTOCOL),
-        WrappedToProtocol(ASUSD.addr, AAVEPROTOCOL)
-    ];
+    // compound
+    Token public CDAI = Token("cDAI", address(0x0000000000000000000000005d3a536e4d6dbd6114cc1ead35777bab948e3643)); // 1
+    Token public CCOMP = Token("cCOMP", address(0x00000000000000000000000070e36f6bf80a52b3b46b3af8e106cc0ed743e8e4)); // 1
+    Token public CAAVE = Token("cAAVE", address(0x000000000000000000000000e65cdb6479bac1e22340e4e755fae7e509ecd06c)); // 1
+    // address public constant CUSDC = address(0x39AA39c021dfbaE8faC545936693aC917d5E7563);
 
-    // LendingRegistry: mapping(address => address) public wrappedToUnderlying;
-    struct WrappedToUnderlying {
-        Token wrapped;
-        Token underlying;
-    }
+    // aave
+    Token public AFEI = Token("aFEI", address(0x000000000000000000000000683923db55fead99a79fa01a27eec3cb19679cc3)); //2
+    Token public ARAI = Token("aRAI", address(0x000000000000000000000000c9bc48c72154ef3e5425641a3c747242112a46af)); // 2
+    Token public AUSDC = Token("aUSDC", address(0x000000000000000000000000bcca60bb61934080951369a648fb03df4f96263c)); // 2
+    Token public AFRAX = Token("aFRAX", address(0x000000000000000000000000d4937682df3c8aef4fe912a96a74121c0829e664)); // 2
+    Token public AYFI = Token("aYFI", address(0x0000000000000000000000005165d24277cd063f5ac44efd447b27025e888f37)); // 2
+    Token public ACRV = Token("aCRV", address(0x0000000000000000000000008dae6cb04688c62d939ed9b68d32bc62e49970b1)); // 2
+    Token public ADAI = Token("aDAI", address(0x000000000000000000000000028171bca77440897b824ca71d1c56cac55b68a3)); // 2
+    Token public ASUSD = Token("aSUSD", address(0x0000000000000000000000006c5024cd4f8a59110119c56f8933403a539555eb)); // 2
 
-    WrappedToUnderlying[] public wrappedToUnderlying = [
-        WrappedToUnderlying(AFEI, FEI),
-        WrappedToUnderlying(CDAI, DAI),
-        WrappedToUnderlying(ARAI, RAI),
-        WrappedToUnderlying(AUSDC, USDC),
-        WrappedToUnderlying(AFRAX, FRAX),
-        WrappedToUnderlying(CCOMP, COMP),
-        WrappedToUnderlying(AYFI, YFI),
-        WrappedToUnderlying(ACRV, CRV),
-        WrappedToUnderlying(XSUSHI, SUSHI),
-        WrappedToUnderlying(CAAVE, AAVE),
-        WrappedToUnderlying(ADAI, DAI),
-        WrappedToUnderlying(ASUSD, SUSD)
-    ];
+    // kashi
+    Token public XSUSHI = Token("xSUSHI", address(0x0000000000000000000000008798249c2e607446efb7ad49ec89dd1865ff4272)); // 3
 
-    // LendingRegistry: mapping(address => mapping(bytes32 => address)) public underlyingToProtocolWrapped;
-    struct ProtocolToWrapped {
-        bytes32 protocol;
-        Token wrapped;
-    }
+    // yearn
+    Token public YVLUSD = Token("yvLUSD", address(0x378cb52b00F9D0921cb46dFc099CFf73b42419dC)); // 4
+    // address public YVLUSDTRACKER = 0x378cb52b00F9D0921cb46dFc099CFf73b42419dC; // not sure if this is needed
+    address public YVLUSDSTRATEGY1 = 0xFf72f7C5f64ec2fd79B57d1A69C3311C1bB3EEF1;
+}
 
-    struct UnderlyingToProtocolWrapped {
-        Token underlying;
-        ProtocolToWrapped[] protocolToWrapped;
-    }
-
-    UnderlyingToProtocolWrapped[] public underlyingToProtocolWrapped = [
-        UnderlyingToProtocolWrapped(RAI, new ProtocolToWrapped[](0)), // (2, ARAI)
-        UnderlyingToProtocolWrapped(DAI, new ProtocolToWrapped[](0)), // (1, CDAI), (2, ADAI)
-        UnderlyingToProtocolWrapped(FEI, new ProtocolToWrapped[](0)), // (2, AFEI)
-        UnderlyingToProtocolWrapped(USDC, new ProtocolToWrapped[](0)), // (2, AUSDC)
-        UnderlyingToProtocolWrapped(FRAX, new ProtocolToWrapped[](0)), // (2, AFRAX)
-        UnderlyingToProtocolWrapped(COMP, new ProtocolToWrapped[](0)), // (1, CCOMP)
-        UnderlyingToProtocolWrapped(YFI, new ProtocolToWrapped[](0)), // (2, AYFI)
-        UnderlyingToProtocolWrapped(CRV, new ProtocolToWrapped[](0)), // (2, ACRV)
-        UnderlyingToProtocolWrapped(SUSHI, new ProtocolToWrapped[](0)), // (3, XSUSHI)
-        UnderlyingToProtocolWrapped(AAVE, new ProtocolToWrapped[](0)), // (1, CAAVE)
-        UnderlyingToProtocolWrapped(SUSD, new ProtocolToWrapped[](0)) // (2, ASUSD)
-    ];
-
-    // LendingRegistry: mapping(bytes32 => address) public protocolToLogic;
-    struct ProtocolToLogic {
-        bytes32 protocol;
-        address logic;
-    }
-
-    ProtocolToLogic[] protocolToLogic = [
-        ProtocolToLogic(COMPOUNDPROTOCOL, address(0x0000000000000000000000005822d781503676b6a927ea841039465193ca213a)),
-        ProtocolToLogic(AAVEPROTOCOL, address(0x000000000000000000000000d67730986fc37d55ecf5cca0d2d854f4fcf5d876)),
-        ProtocolToLogic(SUSHIPROTOCOL, address(0x000000000000000000000000fdbb1009beff807336c0e34e88bb9ff0fe72f849))
-    ];
+contract ChainFork is Logging, Deployed {
+    uint256 public mainnetFork;
+    LendingRegistry public lendingRegistry;
 
     constructor() {
-        // fill out the arrays in underLyingToProtocolWrapped from wrappedToUnderlying and wrappedToProtcol
-        for (uint256 u = 0; u < underlyingToProtocolWrapped.length; u++) {
-            address underlying = underlyingToProtocolWrapped[u].underlying.addr;
-            for (uint256 wu = 0; wu < wrappedToUnderlying.length; wu++) {
-                if (underlying == wrappedToUnderlying[wu].underlying.addr) {
-                    address wrapped = wrappedToUnderlying[wu].wrapped.addr;
-                    bytes32 protocol = 0;
-                    for (uint256 wp = 0; wp < wrappedToProtocol.length; wp++) {
-                        if (wrapped == wrappedToProtocol[wp].wrapped) {
-                            protocol = bytes32(wrappedToProtocol[wp].protocol);
-                            break;
-                        }
-                    }
-                    require(protocol == 0, "no protocol found for wrapped");
-                    underlyingToProtocolWrapped[u].protocolToWrapped.push(
-                        ProtocolToWrapped(protocol, wrappedToUnderlying[wu].wrapped)
-                    );
-                }
-            }
-        }
+        lendingRegistry = LendingRegistry(Deployed.LENDINGREGISTRY);
+        if (logging) console.log("MAINNET_RPC_URL=", vm.envString("MAINNET_RPC_URL"));
+        mainnetFork = vm.createFork(vm.envString("MAINNET_RPC_URL"));
+        vm.selectFork(mainnetFork);
+        assertEq(vm.activeFork(), mainnetFork);
     }
-    */
+}
+
+contract ChainState is ChainFork {
+    uint256 public constant BLOCKNUMBER = 17697898;
+
+    constructor() {
+        vm.rollFork(BLOCKNUMBER);
+        assertEq(block.number, BLOCKNUMBER);
+    }
 }
