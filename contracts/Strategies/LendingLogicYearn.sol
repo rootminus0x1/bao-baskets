@@ -41,12 +41,15 @@ contract LendingLogicYearn is Ownable, ILendingLogic {
     bytes32 public immutable protocolKey;
 
     mapping(address => ArrayList) public wrappedToStrategies;
-    address internal constant GUARD = address(1);
+    // address internal constant GUARD = address(1);
 
     constructor(address _lendingRegistry, bytes32 _protocolKey) {
         require(_lendingRegistry != address(0), "INVALID_LENDING_REGISTRY");
         lendingRegistry = LendingRegistry(_lendingRegistry);
         protocolKey = _protocolKey;
+
+        address wrapped = lendingRegistry.protocolToLogic(_protocolKey);
+        wrappedToStrategies[wrapped] = new ArrayList();
     }
 
     function addStrategyFor(address wrapped, address strategy) public onlyOwner {

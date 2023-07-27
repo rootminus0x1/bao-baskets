@@ -100,9 +100,10 @@ contract ArrayList is IList {
         //   StrategyRevoked(element (indexed))
         (bool found, uint256 index) = _indexOf(element);
         if (found) {
-            if (index < elements.length - 1) {
+            uint256 last = elements.length - 1;
+            if (index < last) {
                 // copy the last one over it
-                elements[index] = elements[elements.length - 1];
+                elements[index] = elements[last];
             }
             // shorten the array
             elements.pop();
