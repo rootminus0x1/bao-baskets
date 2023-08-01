@@ -7,64 +7,9 @@ import {console2 as console} from "forge-std/console2.sol";
 
 import {LendingRegistry} from "contracts/LendingRegistry.sol";
 
-import {Dai} from "./Dai.t.sol";
+import {ChainState} from "./ChainState.sol";
 
-// TODO: move this to useful
-contract Logging is Test {
-    bool public logging = false;
-    bytes16 private constant _SYMBOLS = "0123456789abcdef";
-
-    function setLogging(bool newVal) public {
-        logging = newVal;
-    }
-
-    function toString(uint256 value, uint256 decimals) public pure returns (string memory result) {
-        // calculate the length of the result
-        uint256 length;
-        for (uint256 j = value; j != 0; j /= 10) {
-            length++;
-        }
-        if (decimals > 0) {
-            if (length > decimals) {
-                length++; // for the decimal point
-            } else {
-                length = decimals + 2; // "0." + "00..." prefix
-            }
-        }
-
-        string memory buffer = new string(length);
-        uint256 ptr;
-        /// @solidity memory-safe-assembly
-        assembly {
-            ptr := add(buffer, add(32, length))
-        }
-        uint256 digit = 0;
-        while (true) {
-            ptr--;
-            if (decimals > 0 && digit == decimals) {
-                /// @solidity memory-safe-assembly
-                assembly {
-                    mstore8(ptr, 46)
-                }
-                ptr--;
-                digit++;
-            }
-            digit++;
-            /// @solidity memory-safe-assembly
-            assembly {
-                mstore8(ptr, byte(mod(value, 10), _SYMBOLS))
-            }
-            value /= 10;
-            if (digit == length) break;
-        }
-        return buffer;
-    }
-
-    constructor() {
-        // logging = !streq(vm.envString("LOG"), "");
-        // if (logging) console.log("LOG = '%s'", vm.envString("LOG"));
-    }
-}
+//import {Dai} from "./Dai.t.sol";
 
 contract Deployed {
     // Dai maker
@@ -138,24 +83,10 @@ contract Deployed {
     address public YVLUSDSTRATEGY1 = 0xFf72f7C5f64ec2fd79B57d1A69C3311C1bB3EEF1;
 }
 
-contract ChainFork is Logging, Deployed {
-    uint256 public mainnetFork;
+contract ChainStateLending is ChainState(17697898), Deployed {
     LendingRegistry public lendingRegistry;
 
     constructor() {
         lendingRegistry = LendingRegistry(Deployed.LENDINGREGISTRY);
-        if (logging) console.log("MAINNET_RPC_URL=", vm.envString("MAINNET_RPC_URL"));
-        mainnetFork = vm.createFork(vm.envString("MAINNET_RPC_URL"));
-        vm.selectFork(mainnetFork);
-        assertEq(vm.activeFork(), mainnetFork);
-    }
-}
-
-contract ChainState is ChainFork {
-    uint256 public constant BLOCKNUMBER = 17697898;
-
-    constructor() {
-        vm.rollFork(BLOCKNUMBER);
-        assertEq(block.number, BLOCKNUMBER);
     }
 }

@@ -18,12 +18,12 @@ contract MapList is IList {
     mapping(address => mapping(address => address)) public wrappedToStrategies;
     address internal constant GUARD = address(1);
 
-    function isStrategyFor(address wrapped, address strategy) public view returns (bool) {
+    function isStrategyFor(address wrapped, address strategy) public view override returns (bool) {
         // assumes the list is initialised
         return wrappedToStrategies[wrapped][strategy] != address(0);
     }
 
-    function revokeStrategyFor(address wrapped, address strategy) public {
+    function revokeStrategyFor(address wrapped, address strategy) public override {
         // when strategies are revoked in Yearn, this event is generated:
         //   StrategyRevoked(strategy (indexed))
 
@@ -43,7 +43,7 @@ contract MapList is IList {
         }
     }
 
-    function addStrategyFor(address wrapped, address strategy) public {
+    function addStrategyFor(address wrapped, address strategy) public override {
         // when new strategies are added, you can see them via
         //       log StrategyAdded(strategy (indexed), debtRatio, minDebtPerHarvest, maxDebtPerHarvest, performanceFee)
         if (wrappedToStrategies[wrapped][GUARD] == address(0)) {
@@ -57,7 +57,7 @@ contract MapList is IList {
         }
     }
 
-    function getStrategiesFor(address wrapped) public view returns (address[] memory result) {
+    function getStrategiesFor(address wrapped) public view override returns (address[] memory result) {
         address currentStrategy = wrappedToStrategies[wrapped][GUARD];
         if (currentStrategy == address(0)) {
             // uninitialised list, so no entries
@@ -96,11 +96,11 @@ contract ArrayList is IList {
         }
     }
 
-    function isStrategyFor(address wrapped, address strategy) public view returns (bool found) {
+    function isStrategyFor(address wrapped, address strategy) public view override returns (bool found) {
         (found,) = _indexOf(wrapped, strategy);
     }
 
-    function revokeStrategyFor(address wrapped, address strategy) public {
+    function revokeStrategyFor(address wrapped, address strategy) public override {
         // when strategies are revoked in Yearn, this event is generated:
         //   StrategyRevoked(strategy (indexed))
         (bool found, uint256 index) = _indexOf(wrapped, strategy);
@@ -115,14 +115,14 @@ contract ArrayList is IList {
         }
     }
 
-    function addStrategyFor(address wrapped, address strategy) public {
+    function addStrategyFor(address wrapped, address strategy) public override {
         (bool found,) = _indexOf(wrapped, strategy);
         if (!found) {
             wrappedToStrategies[wrapped].push(strategy);
         }
     }
 
-    function getStrategiesFor(address wrapped) public view returns (address[] memory result) {
+    function getStrategiesFor(address wrapped) public view override returns (address[] memory result) {
         result = new address[](wrappedToStrategies[wrapped].length);
         for (uint256 index = 0; index < wrappedToStrategies[wrapped].length; index++) {
             result[index] = wrappedToStrategies[wrapped][index];

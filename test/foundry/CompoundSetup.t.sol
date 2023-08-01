@@ -9,13 +9,12 @@ import {console2 as console} from "forge-std/console2.sol";
 import {LendingRegistry} from "contracts/LendingRegistry.sol";
 import {LendingLogicCompound} from "contracts/Strategies/LendingLogicCompound.sol";
 
-import {Deployed, ChainState} from "./Deployed.sol";
+import {Deployed, ChainState, ChainStateLending} from "./Deployed.sol";
 import {TestLendingLogic} from "./TestLendingLogic.sol";
-import {Useful} from "./Useful.sol";
 import {TestData} from "./TestData.t.sol";
 import {Dai} from "./Dai.t.sol";
 
-contract TestLendingRegistry is ChainState, TestData {
+contract TestLendingRegistry is ChainStateLending, TestData {
     function test_LendingRegistryBasics() public {
         assertEq(lendingRegistry.owner(), Deployed.OWNER);
 
@@ -31,7 +30,7 @@ contract TestLendingRegistry is ChainState, TestData {
 
 contract TestCompoundDai is TestLendingLogic {
     constructor() {
-        setLogging(true);
+        startLogging("TestCompoundDai");
         TestLendingLogic.create(
             Deployed.LENDINGLOGICCOMPOUND, Deployed.PROTOCOLCOMPOUND, Deployed.CDAI.addr, Deployed.DAI.addr
         );
@@ -45,7 +44,7 @@ contract TestCompoundDai is TestLendingLogic {
 
 contract TestCompoundComp is TestLendingLogic {
     constructor() {
-        setLogging(true);
+        startLogging("TestCompoundComp");
 
         TestLendingLogic.create(
             Deployed.LENDINGLOGICCOMPOUND, Deployed.PROTOCOLCOMPOUND, Deployed.CCOMP.addr, Deployed.COMP.addr
@@ -55,7 +54,7 @@ contract TestCompoundComp is TestLendingLogic {
 
 contract TestCompoundAave is TestLendingLogic {
     constructor() {
-        setLogging(true);
+        startLogging("TestCompoundAave");
 
         TestLendingLogic.create(
             Deployed.LENDINGLOGICCOMPOUND, Deployed.PROTOCOLCOMPOUND, Deployed.CAAVE.addr, Deployed.AAVE.addr

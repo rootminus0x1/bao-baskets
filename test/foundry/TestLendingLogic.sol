@@ -4,22 +4,33 @@ pragma solidity >=0.5.1;
 
 // solhint-disable func-name-mixedcase
 // solhint-disable no-console
-import {console2 as console} from "forge-std/console2.sol";
+// import {console2 as console} from "forge-std/console2.sol";
 
 import {ILendingLogic} from "contracts/Interfaces/ILendingLogic.sol";
 import {IERC20} from "contracts/Interfaces/IERC20.sol";
 
-import {Deployed, ChainFork, ChainState} from "./Deployed.sol";
-import {Useful} from "./Useful.sol";
+import {Deployed, ChainStateLending} from "./Deployed.sol";
 import {TestData} from "./TestData.t.sol";
+import {Useful} from "./Useful.sol";
 
-abstract contract TestLendingLogic is ChainState, Useful, TestData {
+abstract contract TestLendingLogic is ChainStateLending, TestData {
     address logic;
     bytes32 protocol;
     address wrapped;
     address underlying;
 
-    ILendingLogic iLogic = ILendingLogic(logic);
+    ILendingLogic iLogic;
+
+    /*
+    constructor(address _logic, bytes32 _protocol, address _wrapped, address _underlying) {
+        logic = _logic;
+        protocol = _protocol;
+        wrapped = _wrapped;
+        underlying = _underlying;
+
+        iLogic = ILendingLogic(_logic);
+    }
+    */
 
     function create(address _logic, bytes32 _protocol, address _wrapped, address _underlying) public {
         logic = _logic;
@@ -30,14 +41,12 @@ abstract contract TestLendingLogic is ChainState, Useful, TestData {
         iLogic = ILendingLogic(logic);
     }
 
-    function dumpState(string memory func) internal view {
-        if (logging) {
-            console.log("in", func);
-            console.log("  logic=", logic);
-            console.log("  protocol=", uint256(protocol));
-            console.log("  wrapped=", wrapped);
-            console.log("  underlying=", underlying);
-        }
+    function dumpState(string calldata func) internal view {
+        clog("in", func);
+        clog("  logic=", logic);
+        clog("  protocol=", protocol);
+        clog("  wrapped=", wrapped);
+        clog("  underlying=", underlying);
     }
 
     function test_lendingManagerSetup() public {
@@ -75,8 +84,6 @@ abstract contract TestLendingLogic is ChainState, Useful, TestData {
 
         assertNotEq(bestApr, TestData.zeroBigNumber, "expected a non-zero number for apr");
         assertEq(bestProtocol, protocol, "expected the compound protocol");
-
-        if (logging) console.log("APR: %s%%, protocol: %d", toString(bestApr, 18 - 2), uint256(bestProtocol));
     }
 
     function test_Logic() public {
@@ -93,11 +100,15 @@ abstract contract TestLendingLogic is ChainState, Useful, TestData {
         selectedProtocols[0] = protocol;
         (bestApr, bestProtocol) = lendingRegistry.getBestApr(underlying, selectedProtocols);
 
-        if (logging) {
-            // not sure how to test this
-            console.log("exchange rate", iLogic.exchangeRate(wrapped));
-            console.log("exchange rate view", iLogic.exchangeRateView(wrapped));
-        }
+        uint256 apr = iLogic.getAPRFromWrapped(wrapped);
+        assertEq(apr, iLogic.getAPRFromUnderlying(underlying), "underlying and wrapped have different APRs");
+        assertEq(bestApr, apr, "apr not the same as bestApr");
+
+        // not sure how to test these
+        clog("exchange rate", iLogic.exchangeRate(wrapped));
+        clog("exchange rate view", iLogic.exchangeRateView(wrapped));
+        clog("APR: %s", apr);
+        clog("APR: %s%%", Useful.toStringScaled(apr, 18 - 2));
 
         // test lending
         uint256 lendingAmount = underlyingAmount / 2;
@@ -114,13 +125,12 @@ abstract contract TestLendingLogic is ChainState, Useful, TestData {
         assertEq(Useful.extractUInt256(data[1], 36), lendingAmount, "must be amount");
 
         /*
-        if (logging) {
-            console.log("lend(", lendingAmount, ") -> (");
-            for (uint256 t = 0; t < targets.length; t++) {
-                console.log(targets[t], " ->");
-                console.logBytes(data[t]);
-            }
-            console.log(")");
+        clog("lend(", lendingAmount, ") -> (");
+        for (uint256 t = 0; t < targets.length; t++) {
+            clog(targets[t], " ->");
+            console.logBytes(data[t]);
+        }
+        clog(")");
         }
         */
     }
