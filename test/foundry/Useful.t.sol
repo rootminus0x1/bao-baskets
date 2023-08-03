@@ -58,56 +58,56 @@ contract TestUsefulSimples is LoggingTest {
 
     function test_memory() public {
         // zero length
-        assertTrue(Useful.memeq(zeroA, zeroA), "zero length bytes are equal");
-        assertTrue(Useful.memeq(zeroA, zeroB), "zero length bytes are equal");
+        assertTrue(Useful.memEq(zeroA, zeroA), "zero length bytes are equal");
+        assertTrue(Useful.memEq(zeroA, zeroB), "zero length bytes are equal");
 
-        assertTrue(Useful.memeq(oneAx, oneAx));
-        assertTrue(Useful.memeq(oneAx, oneBx));
-        assertTrue(!Useful.memeq(oneAx, oneBy));
+        assertTrue(Useful.memEq(oneAx, oneAx));
+        assertTrue(Useful.memEq(oneAx, oneBx));
+        assertTrue(!Useful.memEq(oneAx, oneBy));
 
-        assertTrue(Useful.memeq(twoAx, twoAx));
-        assertTrue(Useful.memeq(twoAx, twoBx));
-        assertTrue(!Useful.memeq(twoAx, twoBy0));
-        assertTrue(!Useful.memeq(twoAx, twoByn));
+        assertTrue(Useful.memEq(twoAx, twoAx));
+        assertTrue(Useful.memEq(twoAx, twoBx));
+        assertTrue(!Useful.memEq(twoAx, twoBy0));
+        assertTrue(!Useful.memEq(twoAx, twoByn));
 
-        assertTrue(Useful.memeq(thirtytwoAx, thirtytwoAx));
-        assertTrue(Useful.memeq(thirtytwoAx, thirtytwoBx));
-        assertTrue(!Useful.memeq(thirtytwoAx, thirtytwoBy0));
-        assertTrue(!Useful.memeq(thirtytwoAx, thirtytwoBym));
-        assertTrue(!Useful.memeq(thirtytwoAx, thirtytwoByn));
+        assertTrue(Useful.memEq(thirtytwoAx, thirtytwoAx));
+        assertTrue(Useful.memEq(thirtytwoAx, thirtytwoBx));
+        assertTrue(!Useful.memEq(thirtytwoAx, thirtytwoBy0));
+        assertTrue(!Useful.memEq(thirtytwoAx, thirtytwoBym));
+        assertTrue(!Useful.memEq(thirtytwoAx, thirtytwoByn));
 
-        assertTrue(Useful.memeq(bigAx, bigAx));
-        assertTrue(Useful.memeq(bigAx, bigBx));
-        assertTrue(!Useful.memeq(bigAx, bigBy0));
-        assertTrue(!Useful.memeq(bigAx, bigBym));
-        assertTrue(!Useful.memeq(bigAx, bigByn));
+        assertTrue(Useful.memEq(bigAx, bigAx));
+        assertTrue(Useful.memEq(bigAx, bigBx));
+        assertTrue(!Useful.memEq(bigAx, bigBy0));
+        assertTrue(!Useful.memEq(bigAx, bigBym));
+        assertTrue(!Useful.memEq(bigAx, bigByn));
     }
 
     function test_string() public {
         // zero length
-        assertTrue(Useful.streq(zeroAS, zeroAS), "zero length bytes are equal");
-        assertTrue(Useful.streq(zeroAS, zeroBS), "zero length bytes are equal");
+        assertTrue(Useful.strEq(zeroAS, zeroAS), "zero length bytes are equal");
+        assertTrue(Useful.strEq(zeroAS, zeroBS), "zero length bytes are equal");
 
-        assertTrue(Useful.streq(oneAxS, oneAxS));
-        assertTrue(Useful.streq(oneAxS, oneBxS));
-        assertTrue(!Useful.streq(oneAxS, oneByS));
+        assertTrue(Useful.strEq(oneAxS, oneAxS));
+        assertTrue(Useful.strEq(oneAxS, oneBxS));
+        assertTrue(!Useful.strEq(oneAxS, oneByS));
 
-        assertTrue(Useful.streq(twoAxS, twoAxS));
-        assertTrue(Useful.streq(twoAxS, twoBxS));
-        assertTrue(!Useful.streq(twoAxS, twoBy0S));
-        assertTrue(!Useful.streq(twoAxS, twoBynS));
+        assertTrue(Useful.strEq(twoAxS, twoAxS));
+        assertTrue(Useful.strEq(twoAxS, twoBxS));
+        assertTrue(!Useful.strEq(twoAxS, twoBy0S));
+        assertTrue(!Useful.strEq(twoAxS, twoBynS));
 
-        assertTrue(Useful.streq(thirtytwoAxS, thirtytwoAxS));
-        assertTrue(Useful.streq(thirtytwoAxS, thirtytwoBxS));
-        assertTrue(!Useful.streq(thirtytwoAxS, thirtytwoBy0S));
-        assertTrue(!Useful.streq(thirtytwoAxS, thirtytwoBymS));
-        assertTrue(!Useful.streq(thirtytwoAxS, thirtytwoBynS));
+        assertTrue(Useful.strEq(thirtytwoAxS, thirtytwoAxS));
+        assertTrue(Useful.strEq(thirtytwoAxS, thirtytwoBxS));
+        assertTrue(!Useful.strEq(thirtytwoAxS, thirtytwoBy0S));
+        assertTrue(!Useful.strEq(thirtytwoAxS, thirtytwoBymS));
+        assertTrue(!Useful.strEq(thirtytwoAxS, thirtytwoBynS));
 
-        assertTrue(Useful.streq(bigAxS, bigAxS));
-        assertTrue(Useful.streq(bigAxS, bigBxS));
-        assertTrue(!Useful.streq(bigAxS, bigBy0S));
-        assertTrue(!Useful.streq(bigAxS, bigBymS));
-        assertTrue(!Useful.streq(bigAxS, bigBynS));
+        assertTrue(Useful.strEq(bigAxS, bigAxS));
+        assertTrue(Useful.strEq(bigAxS, bigBxS));
+        assertTrue(!Useful.strEq(bigAxS, bigBy0S));
+        assertTrue(!Useful.strEq(bigAxS, bigBymS));
+        assertTrue(!Useful.strEq(bigAxS, bigBynS));
     }
 
     function test_extractUInt256() public {
@@ -156,5 +156,43 @@ contract TestUsefulSimples is LoggingTest {
         assertEq(Useful.toStringThousands(10000, 0), "10000");
         assertEq(Useful.toStringThousands(100000, 0), "100000");
         assertEq(Useful.toStringThousands(1000000, 0), "1000000");
+    }
+
+    function test_toString() public {
+        assertEq(Useful.toString(0), "0");
+        assertEq(Useful.toString(1), "1");
+        assertEq(Useful.toString(2), "2");
+        assertEq(Useful.toString(3), "3");
+        assertEq(Useful.toString(4), "4");
+        assertEq(Useful.toString(5), "5");
+        assertEq(Useful.toString(6), "6");
+        assertEq(Useful.toString(7), "7");
+        assertEq(Useful.toString(8), "8");
+        assertEq(Useful.toString(9), "9");
+        assertEq(Useful.toString(10), "10");
+        assertEq(Useful.toString(2 ** 31), "2147483648");
+    }
+
+    function test_toStringHex() public {
+        assertEq(Useful.toStringHex(0), "0x0");
+        assertEq(Useful.toStringHex(1), "0x1");
+        assertEq(Useful.toStringHex(2), "0x2");
+        assertEq(Useful.toStringHex(3), "0x3");
+        assertEq(Useful.toStringHex(4), "0x4");
+        assertEq(Useful.toStringHex(5), "0x5");
+        assertEq(Useful.toStringHex(6), "0x6");
+        assertEq(Useful.toStringHex(7), "0x7");
+        assertEq(Useful.toStringHex(8), "0x8");
+        assertEq(Useful.toStringHex(9), "0x9");
+        assertEq(Useful.toStringHex(10), "0xa");
+        assertEq(Useful.toStringHex(11), "0xb");
+        assertEq(Useful.toStringHex(12), "0xc");
+        assertEq(Useful.toStringHex(13), "0xd");
+        assertEq(Useful.toStringHex(14), "0xe");
+        assertEq(Useful.toStringHex(15), "0xf");
+        assertEq(Useful.toStringHex(16), "0x10");
+        assertEq(Useful.toStringHex(17), "0x11");
+        assertEq(Useful.toStringHex(256), "0x100");
+        assertEq(Useful.toStringHex(2 ** 31), "0x80000000");
     }
 }

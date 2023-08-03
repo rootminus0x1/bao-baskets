@@ -6,15 +6,17 @@ pragma solidity ^0.7.1;
 import {DateUtils} from "./SkeletonCodeworks/DateUtils/DateUtils.sol";
 import {console2 as console} from "forge-std/console2.sol";
 
+// Attribution: string basics stolen from OpenZeppelin
+
 library Useful {
     bytes16 private constant _SYMBOLS = "0123456789abcdef";
 
-    function memeq(bytes memory a, bytes memory b) internal pure returns (bool) {
+    function memEq(bytes memory a, bytes memory b) internal pure returns (bool) {
         return (a.length == b.length) && (keccak256(a) == keccak256(b));
     }
 
-    function streq(string memory a, string memory b) internal pure returns (bool) {
-        return memeq(bytes(a), bytes(b));
+    function strEq(string memory a, string memory b) internal pure returns (bool) {
+        return memEq(bytes(a), bytes(b));
     }
 
     function extractUInt256(bytes memory data, uint256 pos) public pure returns (uint256 result) {
@@ -41,12 +43,37 @@ library Useful {
         result = string(abi.encodePacked(a, b, c, d)); // can use string.concat from 0.8.12 onwards
     }
 
-    function toStringScaled(uint256 value, uint256 decimals) public pure returns (string memory buffer) {
+    function _length(uint256 value, uint256 base) private pure returns (uint256 digits) {
         // calculate the length of the result
-        uint256 digits;
-        for (uint256 j = value; j != 0; j /= 10) {
+        for (uint256 j = value; j != 0; j /= base) {
             digits++;
         }
+        if (digits == 0) digits = 1; // always a "0";
+    }
+
+    function _toStringBase(uint256 value, uint256 base) private pure returns (string memory buffer) {
+        uint256 digits = _length(value, base);
+        buffer = new string(digits);
+        uint256 ptr;
+        /// @solidity memory-safe-assembly
+        assembly {
+            ptr := add(buffer, add(32, digits))
+        }
+
+        uint256 digit = 0;
+        while (digit < digits) {
+            ptr--;
+            /// @solidity memory-safe-assembly
+            assembly {
+                mstore8(ptr, byte(mod(value, base), _SYMBOLS))
+            }
+            digit++;
+            value /= base;
+        }
+    }
+
+    function toStringScaled(uint256 value, uint256 decimals) public pure returns (string memory buffer) {
+        uint256 digits = _length(value, 10);
         uint256 length = digits;
         if (decimals > 0) {
             if (length > decimals) {
@@ -83,7 +110,11 @@ library Useful {
     }
 
     function toString(uint256 value) internal pure returns (string memory) {
-        return toStringScaled(value, 0);
+        return _toStringBase(value, 10);
+    }
+
+    function toStringHex(uint256 value) public pure returns (string memory buffer) {
+        buffer = concat("0x", _toStringBase(value, 16));
     }
 
     uint8 public constant comma = 44;

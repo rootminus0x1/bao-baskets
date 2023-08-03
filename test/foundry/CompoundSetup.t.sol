@@ -30,7 +30,6 @@ contract TestLendingRegistry is ChainStateLending, TestData {
 
 contract TestCompoundDai is TestLendingLogic {
     constructor() {
-        startLogging("TestCompoundDai");
         TestLendingLogic.create(
             Deployed.LENDINGLOGICCOMPOUND, Deployed.PROTOCOLCOMPOUND, Deployed.CDAI.addr, Deployed.DAI.addr
         );
@@ -44,8 +43,6 @@ contract TestCompoundDai is TestLendingLogic {
 
 contract TestCompoundComp is TestLendingLogic {
     constructor() {
-        startLogging("TestCompoundComp");
-
         TestLendingLogic.create(
             Deployed.LENDINGLOGICCOMPOUND, Deployed.PROTOCOLCOMPOUND, Deployed.CCOMP.addr, Deployed.COMP.addr
         );
@@ -54,8 +51,6 @@ contract TestCompoundComp is TestLendingLogic {
 
 contract TestCompoundAave is TestLendingLogic {
     constructor() {
-        startLogging("TestCompoundAave");
-
         TestLendingLogic.create(
             Deployed.LENDINGLOGICCOMPOUND, Deployed.PROTOCOLCOMPOUND, Deployed.CAAVE.addr, Deployed.AAVE.addr
         );

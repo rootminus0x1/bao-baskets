@@ -9,7 +9,7 @@ import {DateUtils} from "./SkeletonCodeworks/DateUtils/DateUtils.sol";
 import {LoggingTest} from "./LoggingTest.sol";
 import {ChainState} from "./ChainState.sol";
 
-contract TestChainState is LoggingTest {
+contract TestChainState is Test {
     // https://etherscan.io/block/17790000 has this at Jul-28-2023 07:15:35 AM +UTC
     ChainState chainState = new ChainState(17790000);
     uint256 startBlock;
@@ -48,7 +48,6 @@ contract TestChainState is LoggingTest {
         assertApproxEqAbs(block.timestamp, startTimestamp - 60 * 60, secsPerBlock, "back one hour");
         chainState.rollForkBefore("2023-07-27 07:15:35");
         assertApproxEqAbs(block.timestamp, startTimestamp - 60 * 60 * 24, secsPerBlock, "back one day");
-        startLogging("test_1month_back");
         chainState.rollForkBefore("2023-06-28 07:15:35");
         assertApproxEqAbs(block.timestamp, startTimestamp - 60 * 60 * 24 * 30, secsPerBlock, "back one month");
     }
