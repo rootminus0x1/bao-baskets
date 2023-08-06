@@ -10,15 +10,15 @@ import {LoggingTest} from "./LoggingTest.sol";
 import {ChainState} from "./ChainState.sol";
 
 contract TestChainState is Test {
-    // https://etherscan.io/block/17790000 has this at Jul-28-2023 07:15:35 AM +UTC
-    ChainState chainState = new ChainState(17790000);
+    ChainState chainState = new ChainState();
     uint256 startBlock;
     uint256 startTimestamp;
     uint256 constant secsPerBlock = 12;
 
     function setUp() public {
         // go to a known point in time:
-        chainState.rollToOriginal();
+        // https://etherscan.io/block/17790000 has this at Jul-28-2023 07:15:35 AM +UTC
+        chainState.rollForkTo(17790000);
         startBlock = block.number;
         startTimestamp = block.timestamp;
     }

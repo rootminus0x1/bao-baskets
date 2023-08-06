@@ -195,4 +195,48 @@ contract TestUsefulSimples is LoggingTest {
         assertEq(Useful.toStringHex(256), "0x100");
         assertEq(Useful.toStringHex(2 ** 31), "0x80000000");
     }
+
+    function test_toUint256() public {
+        assertEq(Useful.toUint256("", 0), 0, "empty");
+        assertEq(Useful.toUint256("0", 0), 0, "zero");
+
+        assertEq(Useful.toUint256("1", 0), 1, "one");
+        assertEq(Useful.toUint256("1", 1), 10, "ten");
+        assertEq(Useful.toUint256("1", 10), 10000000000, "gazillion");
+
+        assertEq(Useful.toUint256("01", 0), 1, "one 2");
+        assertEq(Useful.toUint256("10", 0), 10, "ten 2");
+        assertEq(Useful.toUint256("10000000000", 0), 10000000000, "gazillion 2");
+
+        assertEq(Useful.toUint256("1234567890", 0), 1234567890, "all digits");
+
+        // point
+        assertEq(Useful.toUint256("9876543210", 0), 9876543210, "all digits backwards");
+        assertEq(Useful.toUint256("9876543210", 1), 98765432100, "all digits backwards * 10");
+
+        assertEq(Useful.toUint256("987654321.0", 0), 987654321, ". @ 1");
+        assertEq(Useful.toUint256("987654321.0", 1), 9876543210, ". @ 1 * 10");
+        assertEq(Useful.toUint256("98765432.10", 0), 98765432, ". @ 2");
+        assertEq(Useful.toUint256("98765432.10", 1), 987654321, ". @ 2 * 10");
+        assertEq(Useful.toUint256("9876543.210", 0), 9876543, ". @ 3");
+        assertEq(Useful.toUint256("9876543.210", 1), 98765432, ". @ 3 * 10");
+        assertEq(Useful.toUint256(".9876543210", 0), 0, ".9");
+        assertEq(Useful.toUint256(".9876543210", 1), 9, ".9 * 10");
+        assertEq(Useful.toUint256("0.99", 1), 9, "0.99");
+
+        // percent
+        assertEq(Useful.toUint256("0.9", 4), 9000, "0.9");
+        assertEq(Useful.toUint256("0.9%", 4), 90, "0.9%");
+
+        assertEq(Useful.toUint256("9%", 4), 900, "9%");
+    }
+
+    function test_consistency() public {
+        assertEq(Useful.toUint256(Useful.toStringScaled(0, 1), 1), 0);
+        assertEq(Useful.toUint256(Useful.toStringScaled(0, 2), 2), 0);
+        assertEq(Useful.toUint256(Useful.toStringScaled(1, 1), 1), 1);
+        assertEq(Useful.toUint256(Useful.toStringScaled(1, 2), 2), 1);
+        assertEq(Useful.toUint256(Useful.toStringScaled(10, 1), 1), 10);
+        assertEq(Useful.toUint256(Useful.toStringScaled(100, 2), 2), 100);
+    }
 }

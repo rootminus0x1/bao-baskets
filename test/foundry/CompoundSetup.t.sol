@@ -30,29 +30,23 @@ contract TestLendingRegistry is ChainStateLending, TestData {
 
 contract TestCompoundDai is TestLendingLogic {
     constructor() {
-        TestLendingLogic.create(
-            Deployed.LENDINGLOGICCOMPOUND, Deployed.PROTOCOLCOMPOUND, Deployed.CDAI.addr, Deployed.DAI.addr
-        );
+        TestLendingLogic.create(Deployed.LENDINGLOGICCOMPOUND, Deployed.PROTOCOLCOMPOUND, Deployed.CDAI, Deployed.DAI);
     }
 
     function test_Compound() public {
-        LendingLogicCompound compoundLogic = LendingLogicCompound(TestLendingLogic.logic);
+        LendingLogicCompound compoundLogic = LendingLogicCompound(Deployed.LENDINGLOGICCOMPOUND);
         assertNotEq(compoundLogic.blocksPerYear(), TestData.zeroBigNumber, "expected a non-zero blocksPerYear");
     }
 }
 
 contract TestCompoundComp is TestLendingLogic {
     constructor() {
-        TestLendingLogic.create(
-            Deployed.LENDINGLOGICCOMPOUND, Deployed.PROTOCOLCOMPOUND, Deployed.CCOMP.addr, Deployed.COMP.addr
-        );
+        TestLendingLogic.create(Deployed.LENDINGLOGICCOMPOUND, Deployed.PROTOCOLCOMPOUND, Deployed.CCOMP, Deployed.COMP);
     }
 }
 
 contract TestCompoundAave is TestLendingLogic {
     constructor() {
-        TestLendingLogic.create(
-            Deployed.LENDINGLOGICCOMPOUND, Deployed.PROTOCOLCOMPOUND, Deployed.CAAVE.addr, Deployed.AAVE.addr
-        );
+        TestLendingLogic.create(Deployed.LENDINGLOGICCOMPOUND, Deployed.PROTOCOLCOMPOUND, Deployed.CAAVE, Deployed.AAVE);
     }
 }

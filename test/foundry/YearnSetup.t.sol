@@ -9,172 +9,132 @@ import {Test} from "forge-std/Test.sol";
 
 import {LendingRegistry} from "contracts/LendingRegistry.sol";
 import {LendingLogicYearn} from "contracts/Strategies/LendingLogicYearn.sol";
+import {ILendingLogic} from "contracts/Interfaces/ILendingLogic.sol";
 
-import {Deployed} from "./Deployed.sol";
+import {DateUtils} from "./SkeletonCodeworks/DateUtils/DateUtils.sol";
+
+import {Useful} from "./Useful.sol";
+import {ChainState, Roller} from "./ChainState.sol";
+import {Deployed, ChainStateLending} from "./Deployed.sol";
 import {TestLendingLogic} from "./TestLendingLogic.sol";
 import {TestData} from "./TestData.t.sol";
-import {Dai} from "./Dai.t.sol";
+// import {Dai} from "./Dai.t.sol";
 
-contract TestYearnLusd is TestLendingLogic {
+abstract contract YearnLusd {
+    address public wrapped = Deployed.YVLUSD;
+    address public underlying = Deployed.LUSD;
+
     bytes32 public constant PROTOCOLYEARN = 0x0000000000000000000000000000000000000000000000000000000000000004;
+
     LendingLogicYearn public lendingLogicYearn;
     address public LENDINGLOGICYEARN;
 
-    constructor() {
-        startLogging("TestYearnLusd");
-    }
-
-    function setUp() public {
-        lendingLogicYearn = new LendingLogicYearn(address(lendingRegistry), PROTOCOLYEARN);
+    function createLogic() public {
+        lendingLogicYearn = new LendingLogicYearn(Deployed.LENDINGREGISTRY, PROTOCOLYEARN);
         LENDINGLOGICYEARN = address(lendingLogicYearn);
 
-        // console.log("transferring ownership to %s", Deployed.OWNER);
         lendingLogicYearn.transferOwnership(Deployed.OWNER);
-        vm.startPrank(Deployed.OWNER);
-        // set up the lending logic
-        // console.log("adding strategy %s for wrapped %s", YVLUSDSTRATEGY1, YVLUSD.addr);
-        // TODO: uncomment this if we can't get the strategies from withdrawal queue
-        // lendingLogicYearn.addStrategyFor(YVLUSD.addr, YVLUSDSTRATEGY1); // we get the returns from this
-
-        // set up the lending registry
-        // console.log("setting up lendingRegistry for yearn");
-        lendingRegistry.setWrappedToProtocol(YVLUSD.addr, PROTOCOLYEARN);
-        lendingRegistry.setWrappedToUnderlying(YVLUSD.addr, LUSD.addr);
-        lendingRegistry.setProtocolToLogic(PROTOCOLYEARN, LENDINGLOGICYEARN);
-        lendingRegistry.setUnderlyingToProtocolWrapped(LUSD.addr, PROTOCOLYEARN, YVLUSD.addr);
-        vm.stopPrank();
-
-        TestLendingLogic.create(LENDINGLOGICYEARN, PROTOCOLYEARN, Deployed.YVLUSD.addr, Deployed.LUSD.addr);
-        // console.log("setUp done.");
     }
 }
 
-contract TestYearnLogicBasics is Test, TestData {
-    bytes32 public constant PROTOCOLYEARN = 0x0000000000000000000000000000000000000000000000000000000000000004;
-    LendingLogicYearn public lendingLogicYearn;
-
+contract TestYearnLusd is TestLendingLogic, YearnLusd {
     function setUp() public {
-        lendingLogicYearn = new LendingLogicYearn(address(new LendingRegistry()), PROTOCOLYEARN);
+        YearnLusd.createLogic();
+
+        vm.startPrank(Deployed.OWNER);
+        // set up the lending registry
+        lendingRegistry.setWrappedToProtocol(wrapped, PROTOCOLYEARN);
+        lendingRegistry.setWrappedToUnderlying(wrapped, underlying);
+        lendingRegistry.setProtocolToLogic(PROTOCOLYEARN, LENDINGLOGICYEARN);
+        lendingRegistry.setUnderlyingToProtocolWrapped(underlying, PROTOCOLYEARN, wrapped);
+        vm.stopPrank();
+
+        TestLendingLogic.create(LENDINGLOGICYEARN, PROTOCOLYEARN, wrapped, underlying);
+    }
+}
+
+contract TestYearnLogicBackTest is Test, YearnLusd {
+    struct TimeSeriesItem {
+        string date;
+        string value;
     }
 
-    function contains(address[] memory _list, address _element) private pure returns (bool found) {
-        found = false;
-        for (uint256 index = 0; index < _list.length; index++) {
-            if (_list[index] == _element) {
-                found = true;
-                break;
-            }
+    function test_historicalRates() public {
+        TimeSeriesItem[10] memory timeSeries = [
+            TimeSeriesItem({date: "2023-03-11 22:25:00", value: "8.48%"}),
+            TimeSeriesItem({date: "2023-03-26 23:29:00", value: "7.21%"}),
+            TimeSeriesItem({date: "2023-04-10 23:34:00", value: "7.14%"}),
+            TimeSeriesItem({date: "2023-05-04 04:27:00", value: "4.97%"}),
+            TimeSeriesItem({date: "2023-05-19 11:39:00", value: "3.87%"}),
+            TimeSeriesItem({date: "2023-06-03 11:40:00", value: "3.16%"}),
+            TimeSeriesItem({date: "2023-06-18 11:40:00", value: "2.70%"}),
+            TimeSeriesItem({date: "2023-07-03 11:41:00", value: "2.72%"}),
+            TimeSeriesItem({date: "2023-07-18 11:43:00", value: "3.07%"}),
+            TimeSeriesItem({date: "2023-08-02 12:14:00", value: "2.63%"})
+        ];
+        string memory url = vm.envString("MAINNET_RPC_URL");
+        console.log("MAINNET_RPC_URL=%s", url);
+        console.log("Date, Yearn, Bao");
+        for (uint256 i = 0; i < timeSeries.length; i++) {
+            uint256 fork = vm.createFork(url);
+            vm.selectFork(fork);
+
+            uint256 dt = DateUtils.convertDateTimeStringToTimestamp(timeSeries[i].date);
+            Roller.rollForkBefore(vm, dt + 60 * 60); // add an hour
+
+            createLogic();
+            uint256 apr = lendingLogicYearn.getAPRFromWrapped(wrapped);
+            console.log(
+                "%s, %s, %s%%",
+                DateUtils.convertTimestampToDateTimeString(block.timestamp),
+                timeSeries[i].value,
+                Useful.toStringScaled(apr, 18 - 2)
+            );
         }
     }
 
-    /*
-    // this is for the implementation without List.sol
-    function getElements(address wrapped) private view returns (address[] memory result) {
-        clog("getting elements");
-        uint256 index = 0;
-        while (lendingLogicYearn.wrappedToStrategies(wrapped, index) != address(0)) {
-            index++;
+    function test_detailedhistoricalRates() public {
+        string memory startDateTime = "2023-03-12 12:25:00"; // about as early as you can go for yvLUSD
+        string memory finishDateTime = "2023-08-02 12:14:00";
+        //string memory finishDateTime = "2023-03-15 12:30:00"; // test for 1 day
+
+        uint256 startTimestamp = DateUtils.convertDateTimeStringToTimestamp(startDateTime);
+        uint256 finishTimestamp = DateUtils.convertDateTimeStringToTimestamp(finishDateTime);
+
+        string memory url = vm.envString("MAINNET_RPC_URL");
+        console.log("MAINNET_RPC_URL=%s", url);
+
+        // do a daily sample
+        uint256 samplePeriod = 60 * 60 * 24; // one a day; <-- parameter
+        uint256 numberOfSamples = (finishTimestamp - startTimestamp) / samplePeriod;
+
+        console.log("numberOfSamples=%d", numberOfSamples);
+        // work out how many blocks to go per sample Period
+        uint256 fork = vm.createFork(url);
+        vm.selectFork(fork);
+        Roller.rollForkBefore(vm, finishTimestamp);
+        uint256 finishBlock = block.number;
+        Roller.rollForkBefore(vm, startTimestamp);
+        uint256 startBlock = block.number;
+
+        uint256 blocksPerSamplePeriod = (finishBlock - startBlock) / numberOfSamples;
+        console.log("sampling between blocks %d and %d", startBlock, finishBlock);
+
+        console.log("fork, block, Date, Bao");
+        uint256 currentBlock = block.number;
+        while (currentBlock <= finishBlock) {
+            createLogic();
+            uint256 apr = lendingLogicYearn.getAPRFromWrapped(wrapped);
+            console.log(
+                "%d, %s, %s%%",
+                currentBlock,
+                DateUtils.convertTimestampToDateTimeString(block.timestamp),
+                Useful.toStringScaled(apr, 18 - 2)
+            );
+            currentBlock += blocksPerSamplePeriod;
+            fork = vm.createFork(url);
+            vm.selectFork(fork);
+            vm.rollFork(currentBlock);
         }
-        result = new address[](index);
-        index = 0;
-        while (lendingLogicYearn.wrappedToStrategies(wrapped, index) != address(0)) {
-            result[index] = lendingLogicYearn.wrappedToStrategies(wrapped, index);
-            index++;
-        }
     }
-
-    // this is for with List.sol 
-    function getElements(address wrapped) private view returns (address[] memory result) {
-        result = lendingLogicYearn.wrappedToStrategies(testWrapped1).getElements();
-    }
-
-    function testStrategiesList() public {
-        address testWrapped1 = address(0xA);
-        address testWrapped2 = address(0xB);
-        address testStrategy1 = address(0x100);
-        address testStrategy2 = address(0x200);
-        address testStrategy3 = address(0x300);
-
-        //
-        // single adds and removes
-        //
-        // check empty handling
-        assertEq(getElements(testWrapped1).length, 0, "expected empty array");
-        assertEq(getElements(testWrapped1).length, 0, "expected empty array"); // call twice
-        assertEq(getElements(testWrapped2).length, 0, "expected empty array");
-
-        // remove from ampty lendingLogicYearn
-        lendingLogicYearn.revokeStrategyFor(testWrapped1, testStrategy1);
-        assertEq(getElements(testWrapped1).length, 0, "expected empty array");
-        assertEq(getElements(testWrapped2).length, 0, "expected empty array");
-
-        // add one and check its there
-        lendingLogicYearn.addStrategyFor(testWrapped1, testStrategy1);
-        address[] memory strategies = getElements(testWrapped1);
-        assertEq(strategies.length, 1, "expected length=1");
-        assertTrue(contains(strategies, testStrategy1), "should contain testStrategy1");
-        assertEq(getElements(testWrapped2).length, 0, "expected empty array");
-
-        // remove one that's there
-        lendingLogicYearn.revokeStrategyFor(testWrapped1, testStrategy1);
-        strategies = getElements(testWrapped1);
-        assertEq(getElements(testWrapped1).length, 0, "expected empty array");
-        assertEq(getElements(testWrapped2).length, 0, "expected empty array");
-
-        // remove one that's there again
-        lendingLogicYearn.revokeStrategyFor(testWrapped1, testStrategy1);
-        strategies = getElements(testWrapped1);
-        assertEq(getElements(testWrapped1).length, 0, "expected empty array");
-        assertEq(getElements(testWrapped2).length, 0, "expected empty array");
-
-        // add one again and check its there
-        lendingLogicYearn.addStrategyFor(testWrapped1, testStrategy1);
-        strategies = getElements(testWrapped1);
-        assertEq(strategies.length, 1, "expected length=1");
-        assertTrue(contains(strategies, testStrategy1));
-        assertEq(getElements(testWrapped2).length, 0, "expected empty array");
-
-        // add the same one again and check its only there once
-        lendingLogicYearn.addStrategyFor(testWrapped1, testStrategy1);
-        strategies = getElements(testWrapped1);
-        assertEq(strategies.length, 1, "expected length=1");
-        assertTrue(contains(strategies, testStrategy1), "should contain testStrategy1");
-        assertEq(getElements(testWrapped2).length, 0, "expected empty array");
-
-        //
-        // multiple adds and removes
-        //
-        lendingLogicYearn.addStrategyFor(testWrapped1, testStrategy1);
-        lendingLogicYearn.addStrategyFor(testWrapped1, testStrategy2);
-        lendingLogicYearn.addStrategyFor(testWrapped1, testStrategy3);
-        strategies = getElements(testWrapped1);
-        assertEq(strategies.length, 3, "expected length=3");
-        // returns them in reverse insertion order
-        // (implementation detail but relying on this on a test makes the test easier)
-        assertTrue(contains(strategies, testStrategy1), "should contain testStrategy1");
-        assertTrue(contains(strategies, testStrategy2), "should contain testStrategy2");
-        assertTrue(contains(strategies, testStrategy3), "should contain testStrategy3");
-
-        // revoke head
-        lendingLogicYearn.revokeStrategyFor(testWrapped1, testStrategy3);
-        strategies = getElements(testWrapped1);
-        assertEq(strategies.length, 2, "expected length=2 after head revoke");
-        assertTrue(contains(strategies, testStrategy1), "should contain testStrategy1");
-        assertTrue(contains(strategies, testStrategy2), "should contain testStrategy2");
-
-        // add it back and revoke tail
-        lendingLogicYearn.addStrategyFor(testWrapped1, testStrategy3);
-        strategies = getElements(testWrapped1);
-        assertEq(strategies.length, 3, "expected length=3");
-        assertTrue(contains(strategies, testStrategy1), "should contain testStrategy1");
-        assertTrue(contains(strategies, testStrategy2), "should contain testStrategy2");
-        assertTrue(contains(strategies, testStrategy3), "should contain testStrategy3");
-        lendingLogicYearn.revokeStrategyFor(testWrapped1, testStrategy1);
-        strategies = getElements(testWrapped1);
-        assertEq(strategies.length, 2, "expected length=2 after tail revoke");
-        assertTrue(contains(strategies, testStrategy2), "should contain testStrategy2");
-        assertTrue(contains(strategies, testStrategy3), "should contain testStrategy3");
-    }
-
-    */
 }

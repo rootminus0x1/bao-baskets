@@ -28,84 +28,55 @@ contract LogConsole is ILog {
 // in LoggingTest we create an array od those structs and push and pop to make a stack
 //
 contract LogBuilder {
-    struct LogBuilderState {
-        string separator;
-        string defaultSeparator;
-        string buffer;
-        string indent; // TODO: this is not part of the logBuilderState - move to LoggingTest
-    }
+    string private separator;
+    string private defaultSeparator;
+    string public buffer;
+    string private indent;
 
-    LogBuilderState[] public logBuilderStates;
-
-    function pushState() public returns (LogBuilder) {
-        logBuilderStates.push(
-            LogBuilderState({
-                separator: "", // no separator at first, then switches to the default
-                defaultSeparator: " ", // default is a space
-                buffer: "", // buffer is empty
-                indent: "" // no indent
-            })
-        );
-        console.log("<-LogBuilder:pushState(), new length=%d", logBuilderStates.length);
-        return this;
-    }
-
-    function popState() public returns (LogBuilder) {
-        logBuilderStates.pop();
-        // console.log("->LogBuilder:popState(), new length=%d", logBuilderStates.length);
-        return this;
-    }
-
-    function last() public view returns (uint256) {
-        return logBuilderStates.length - 1;
+    constructor() {
+        separator = ""; // no separator at first, then switches to a space
+        defaultSeparator = " ";
+        buffer = "";
+        indent = ""; // no indent
     }
 
     function setDefaultSeparator(string memory sep) public {
-        logBuilderStates[last()].defaultSeparator = sep;
+        defaultSeparator = sep;
     }
 
     function flush() public returns (string memory result) {
-        // TODO: this should only happen when there is one state left;
-        result = Useful.concat(string(logBuilderStates[last()].indent), string(logBuilderStates[last()].buffer));
-        // console.log("->LogBuilder:flush() '%s'", result);
-        logBuilderStates[last()].buffer = "";
+        result = Useful.concat(string(indent), string(buffer));
+        buffer = "";
     }
 
     function append(string memory suffix) private {
         // each value is separated from the previous, unless it's the first
-        // console.log("->LogBuilder:append('%s')", suffix);
-        logBuilderStates[last()].buffer = Useful.concat(
-            logBuilderStates[last()].buffer,
-            (bytes(logBuilderStates[last()].buffer).length > 0) ? logBuilderStates[last()].separator : "",
-            suffix
-        );
-        logBuilderStates[last()].separator = logBuilderStates[last()].defaultSeparator;
-        // console.log("  buffer='%s'", logBuilderStates[last()].buffer);
+        buffer = Useful.concat(buffer, (bytes(buffer).length > 0) ? separator : "", suffix);
+        separator = defaultSeparator;
     }
 
     function comma() public returns (LogBuilder) {
-        logBuilderStates[last()].separator = ", ";
+        separator = ", ";
         return this;
     }
 
     function colon() public returns (LogBuilder) {
-        logBuilderStates[last()].separator = ": ";
+        separator = ": ";
         return this;
     }
 
     function semi() public returns (LogBuilder) {
-        logBuilderStates[last()].separator = "; ";
+        separator = "; ";
         return this;
     }
 
     function none() public returns (LogBuilder) {
-        logBuilderStates[last()].separator = "";
+        separator = "";
         return this;
     }
 
     // log(v(1).v(2000)) =>1 2,000<=;
     function v(uint256 value) public returns (LogBuilder) {
-        // console.log("->LogBuilder:v(%d)", value);
         append(Useful.toStringThousands(value, Useful.comma));
         return this;
     }
@@ -120,7 +91,6 @@ contract LogBuilder {
         return this;
     }
 
-    // log(v0x(1)) =>0x1<=
     function v0x(uint256 value) public returns (LogBuilder) {
         append(Useful.toStringHex(value));
         return this;
@@ -131,14 +101,9 @@ contract LogBuilder {
         return this;
     }
 
-    function v(string memory value) public returns (LogBuilder) {
-        append(value);
-        return this;
-    }
-
     function n(string memory name) public returns (LogBuilder) {
         append(Useful.concat(name, "="));
-        logBuilderStates[last()].separator = ""; // join the = with the value
+        separator = ""; // join the = with the value
         return this;
     }
 
@@ -146,35 +111,26 @@ contract LogBuilder {
 
     // v_(2000) =>2_000<=
 
+    // todo: this doesn't work as we build the buffer linearly
+    // and this needs
     // log(q(v(1).v(2))) =>'1 2'<=;
-    function _bracket(string memory open, string memory close) internal returns (LogBuilder) {
-        string memory lb = Useful.concat(open, logBuilderStates[last()].buffer, close);
-        //popState();
-        append(lb);
+    function q(LogBuilder lb) public returns (LogBuilder) {
+        append(Useful.concat("'", lb.buffer(), "'"));
         return this;
     }
 
-    function q(LogBuilder) public returns (LogBuilder) {
-        return _bracket("'", "'");
-    }
-
-    function qq(LogBuilder) public returns (LogBuilder) {
-        return _bracket("\"", "\"");
-    }
-
-    function bWithNewState(LogBuilder) public returns (LogBuilder) {
-        // console.log("->LogBuilder:bWithNewState(LogBuilder.buffer='%s')", logBuilderStates[last()].buffer);
-        logBuilderStates[last()].buffer = Useful.concat("(", logBuilderStates[last()].buffer, ")");
+    function qq(LogBuilder lb) public returns (LogBuilder) {
+        append(Useful.concat("\"", lb.buffer(), "\""));
         return this;
     }
 
-    function b(LogBuilder) public returns (LogBuilder) {
-        // console.log("->LogBuilder:b(LogBuilder.buffer='%s')", logBuilderStates[last()].buffer);
-        string memory lb = Useful.concat("(", logBuilderStates[last()].buffer, ")");
-        popState();
-        append(lb);
+    function b(LogBuilder lb) public returns (LogBuilder) {
+        append(Useful.concat("(", lb.buffer(), ")"));
         return this;
     }
+
+    // log(v0x(1)) =>0x1<=
+    // function v0x(uint256)
 }
 
 contract LoggingTest is Test {
@@ -182,12 +138,11 @@ contract LoggingTest is Test {
     // for contracts we need to add the name to the constructor
 
     ILog private logDevice;
-    LogBuilder logBuilder;
 
     constructor() {
         // Logger.setLoggingInstructions(vm.envOr("LOG", string("")));
+        // todo: setLogger (debug or normal)
         logDevice = new LogConsole();
-        logBuilder = new LogBuilder();
     }
 
     modifier logMe(string memory functionName) {
@@ -221,84 +176,70 @@ contract LoggingTest is Test {
     // logging functions
     // l - connects the logBuilder with the log device
     function l(LogBuilder lb) public {
-        // console.log("->LoggingTest:l(LogBuilder)");
         logDevice.log(lb.flush());
-        logBuilder.popState();
     }
 
     function l(string memory message) public {
-        // console.log("->LoggingTest:l('%s')", message);
         logDevice.log(message);
     }
 
     // separator functions
     // TODO: consider rolling these into one function s() with a param
-    function comma() public returns (LogBuilder) {
-        logBuilder.pushState();
-        logBuilder.setDefaultSeparator(", ");
-        return logBuilder;
+    function comma() public returns (LogBuilder result) {
+        result = new LogBuilder();
+        result.setDefaultSeparator(", ");
     }
 
-    function colon() public returns (LogBuilder) {
-        logBuilder.pushState();
-        logBuilder.setDefaultSeparator(": ");
-        return logBuilder;
+    function colon() public returns (LogBuilder result) {
+        result = new LogBuilder();
+        result.setDefaultSeparator(": ");
     }
 
-    function semi() public returns (LogBuilder) {
-        logBuilder.pushState();
-        logBuilder.setDefaultSeparator("; ");
-        return logBuilder;
+    function semi() public returns (LogBuilder result) {
+        result = new LogBuilder();
+        result.setDefaultSeparator("; ");
     }
 
-    function none() public returns (LogBuilder) {
-        logBuilder.pushState();
-        logBuilder.setDefaultSeparator("");
-        return logBuilder;
+    function none() public returns (LogBuilder result) {
+        result = new LogBuilder();
+        result.setDefaultSeparator("");
     }
 
     // delegation functions
     function v(uint256 value) public returns (LogBuilder) {
-        // console.log("->LoggingTest:v(%d)", value);
-        return logBuilder.pushState().v(value);
+        return new LogBuilder().v(value);
     }
 
     function v_(uint256 value) public returns (LogBuilder) {
-        return logBuilder.pushState().v(value);
+        return new LogBuilder().v_(value);
     }
 
     function v0(uint256 value) public returns (LogBuilder) {
-        return logBuilder.pushState().v0(value);
+        return new LogBuilder().v0(value);
     }
 
     function v0x(uint256 value) public returns (LogBuilder) {
-        return logBuilder.pushState().v0x(value);
+        return new LogBuilder().v0x(value);
     }
 
     function v$(uint256 value, uint256 digits) public returns (LogBuilder) {
-        return logBuilder.pushState().v$(value, digits);
-    }
-
-    function v(string memory value) public returns (LogBuilder) {
-        return logBuilder.pushState().v(value);
+        return new LogBuilder().v$(value, digits);
     }
 
     function n(string memory name) public returns (LogBuilder) {
-        return logBuilder.pushState().n(name);
+        return new LogBuilder().n(name);
     }
 
     function q(LogBuilder lb) public returns (LogBuilder) {
-        return logBuilder.pushState().q(lb).popState();
+        return new LogBuilder().q(lb);
     }
 
     function qq(LogBuilder lb) public returns (LogBuilder) {
-        return logBuilder.pushState().qq(lb).popState();
+        return new LogBuilder().qq(lb);
     }
 
     function b(LogBuilder lb) public returns (LogBuilder) {
-        // console.log("->LoggingTest:b(LogBuilder)");
-        logBuilder.bWithNewState(lb);
-        return logBuilder;
+        return new LogBuilder().b(lb);
     }
 
     // TODO: remove all of the below
@@ -362,3 +303,86 @@ contract LoggingTest is Test {
         if (logging) console.log(addIndent(format), d, d2);
     }
 }
+
+/*
+contract Logger {
+    string private buffer;
+
+    bool internal logging; // the current state of logging
+    bool[] internal previousLoggingStates; // so we can return to the previous state
+
+    string loggingInstructions;
+
+    constructor() {
+        buffer = "";
+        loggingInstructions = "";
+        logging = false;
+    }
+
+
+
+    function setLoggingInstructions(string memory instructions) internal {
+        loggingInstructions = instructions;
+        // TODO: split the instructions into a map of functions/contracts that should be logged
+        logging = false;
+    }
+
+    function indentAmount() private view returns (uint256) {
+        return previousLoggingStates.length * 2;
+    }
+
+    function pushLogging(string memory name, bool newLogging) internal {
+        endl();
+        previousLoggingStates.push(logging);
+        logging = newLogging;
+        if (logging) {
+            buffer = Useful.concat(buffer, name, " ...");
+        }
+        endl();
+    }
+
+    function popLogging(string memory name) internal {
+        endl();
+        logging = previousLoggingStates[previousLoggingStates.length - 1];
+        previousLoggingStates.pop();
+        if (logging) {
+            buffer = Useful.concat(buffer, name, " done.");
+        }
+        endl();
+    }
+
+    function endl() public returns (Logger) {
+        if (logging) {
+            console.log(Useful.concat(buffer, "/"));
+            // add in the indentation
+        }
+        buffer = new string(indentAmount());
+        for (uint256 i = 0; i < bytes(buffer).length; i++) {
+            if (logging) {
+                bytes(buffer)[i] = ".";
+            } else {
+                bytes(buffer)[i] = "-";
+            }
+        }
+        return this;
+    }
+
+    function l(string memory value) public returns (Logger) {
+        if (logging) {
+            if (bytes(buffer).length != indentAmount()) {
+                buffer = Useful.concat(buffer, "_"); // space out separate logs
+            }
+            buffer = Useful.concat(buffer, value);
+        }
+        return this;
+    }
+
+    function l(uint256 value) public returns (Logger) {
+        return l(Useful.toStringThousands(value, Useful.comma));
+    }
+
+    function l(string memory name, uint256 value) public returns (Logger) {
+        return l(name).l("=").l(value);
+    }
+}
+*/

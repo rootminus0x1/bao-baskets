@@ -4,7 +4,7 @@ pragma solidity >=0.5.1;
 
 // solhint-disable func-name-mixedcase
 // solhint-disable no-console
-// import {console2 as console} from "forge-std/console2.sol";
+import {console2 as console} from "forge-std/console2.sol";
 
 import {ILendingLogic} from "contracts/Interfaces/ILendingLogic.sol";
 import {IERC20} from "contracts/Interfaces/IERC20.sol";
@@ -14,23 +14,12 @@ import {TestData} from "./TestData.t.sol";
 import {Useful} from "./Useful.sol";
 
 abstract contract TestLendingLogic is ChainStateLending, TestData {
-    address logic;
-    bytes32 protocol;
-    address wrapped;
-    address underlying;
+    address private logic;
+    bytes32 private protocol;
+    address private wrapped;
+    address private underlying;
 
     ILendingLogic iLogic;
-
-    /*
-    constructor(address _logic, bytes32 _protocol, address _wrapped, address _underlying) {
-        logic = _logic;
-        protocol = _protocol;
-        wrapped = _wrapped;
-        underlying = _underlying;
-
-        iLogic = ILendingLogic(_logic);
-    }
-    */
 
     function create(address _logic, bytes32 _protocol, address _wrapped, address _underlying) public {
         logic = _logic;
@@ -41,16 +30,7 @@ abstract contract TestLendingLogic is ChainStateLending, TestData {
         iLogic = ILendingLogic(logic);
     }
 
-    function dumpState(string calldata func) internal view {
-        clog("in", func);
-        clog("  logic=", logic);
-        clog("  protocol=", protocol);
-        clog("  wrapped=", wrapped);
-        clog("  underlying=", underlying);
-    }
-
     function test_lendingManagerSetup() public {
-        // dumpState("test_lendingManagerSetup");
         // mapping(address => mapping(bytes32 => address)) public underlyingToProtocolWrapped;
         assertEq(
             lendingRegistry.underlyingToProtocolWrapped(underlying, protocol),
@@ -71,7 +51,6 @@ abstract contract TestLendingLogic is ChainStateLending, TestData {
 
     function test_getBestApr() public {
         // get best Apr for underlying
-
         uint256 bestApr;
         bytes32 bestProtocol;
         bytes32[] memory selectedProtocols = new bytes32[](1);
@@ -105,10 +84,10 @@ abstract contract TestLendingLogic is ChainStateLending, TestData {
         assertEq(bestApr, apr, "apr not the same as bestApr");
 
         // not sure how to test these
-        clog("exchange rate", iLogic.exchangeRate(wrapped));
-        clog("exchange rate view", iLogic.exchangeRateView(wrapped));
-        clog("APR: %s", apr);
-        clog("APR: %s%%", Useful.toStringScaled(apr, 18 - 2));
+        console.log("exchange rate", iLogic.exchangeRate(wrapped));
+        console.log("exchange rate view", iLogic.exchangeRateView(wrapped));
+        console.log("APR: %s", apr);
+        console.log("APR: %s%%", Useful.toStringScaled(apr, 18 - 2));
 
         // test lending
         uint256 lendingAmount = underlyingAmount / 2;

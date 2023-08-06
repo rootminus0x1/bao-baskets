@@ -161,4 +161,40 @@ library Useful {
             }
         }
     }
+
+    bytes1 constant zero = bytes1(uint8(48));
+    bytes1 constant nine = bytes1(uint8(57));
+    bytes1 constant decimalPoint = bytes(".")[0];
+    bytes1 constant percent = bytes1(uint8(37));
+
+    function toUint256(string memory value, uint256 decimals) public pure returns (uint256 result) {
+        //console.log("toUint256('%s',%d)", value, decimals);
+        uint256 length = bytes(value).length;
+        uint256 point = length; // if there's none there, it's after all the digits
+        uint256 digits = 0;
+        for (uint256 i = 0; i < length; i++) {
+            bytes1 char = bytes(value)[i];
+            if (char == decimalPoint) {
+                point = i;
+            } else if (char >= zero && char <= nine) {
+                result = result * 10 + uint8(char) - uint8(zero);
+                digits++;
+            } else if (char == percent) {
+                require(i == length - 1, "% character, if present, must be at the end");
+                decimals -= 2; // same as * 100
+                if (point == length) point--;
+            } else {
+                require(false, "invalid character in numeric string");
+            }
+        }
+        //console.log("result=%d", result);
+        //console.log("point=%d, - digits=%d, + decimals=%d", point, digits, decimals);
+        if ((point + decimals) > digits) {
+            //console.log("* 10 ** %d", ((point + decimals) - digits));
+            result = result * 10 ** ((point + decimals) - digits);
+        } else if ((point + decimals) < digits) {
+            //console.log("/ 10 ** %d", (digits - (point + decimals)));
+            result = result / 10 ** (digits - (point + decimals));
+        }
+    }
 }
