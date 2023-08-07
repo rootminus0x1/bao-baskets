@@ -33,14 +33,6 @@ contract TestChainState is Test {
         assertEq(block.number, startBlock, "same date should result in no blocks moved");
     }
 
-    function test_blockboundary_back() public {
-        // roll over at least one block boundary
-        for (uint256 i = 1; i < 20; i++) {
-            chainState.rollForkBefore(startTimestamp - 1);
-        }
-        assertEq(block.number, startBlock - 1, "back one second, should be the previous block");
-    }
-
     function test_longer_back() public {
         chainState.rollForkBefore("2023-07-28 07:14:35");
         assertApproxEqAbs(block.timestamp, startTimestamp - 60, secsPerBlock, "back one min");

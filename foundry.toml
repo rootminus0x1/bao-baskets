@@ -4,7 +4,7 @@ out = 'artifacts'
 libs = ['node_modules', 'lib']
 test = 'test/foundry'
 cache_path = 'forge-cache'
-
+gas_limit = "18446744073709551615" # u64::MAX i.e. highest
 
 # put this in the ~/.foundry/foundry.toml file
 #eth_rpc_url = 'https://eth-mainnet.g.alchemy.com/v2/lQ2dW5O1Il2p992zzaU5iVs_1Vgf-ABm'

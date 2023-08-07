@@ -21,7 +21,7 @@ abstract contract TestLendingLogic is ChainStateLending, TestData {
 
     ILendingLogic iLogic;
 
-    function create(address _logic, bytes32 _protocol, address _wrapped, address _underlying) public {
+    function initialise(address _logic, bytes32 _protocol, address _wrapped, address _underlying) public {
         logic = _logic;
         protocol = _protocol;
         wrapped = _wrapped;
@@ -30,7 +30,8 @@ abstract contract TestLendingLogic is ChainStateLending, TestData {
         iLogic = ILendingLogic(logic);
     }
 
-    function test_lendingManagerSetup() public {
+    function test_lendingRegistrySetup() public {
+        require(logic != address(0), "TestLendingLogic not initialised");
         // mapping(address => mapping(bytes32 => address)) public underlyingToProtocolWrapped;
         assertEq(
             lendingRegistry.underlyingToProtocolWrapped(underlying, protocol),

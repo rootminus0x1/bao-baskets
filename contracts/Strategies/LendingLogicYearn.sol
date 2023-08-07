@@ -6,46 +6,8 @@ import "../OpenZeppelin/Ownable.sol";
 import "../OpenZeppelin/SafeMath.sol";
 import "../Interfaces/IERC20.sol";
 import "../Interfaces/ILendingLogic.sol";
+import "../Interfaces/IYToken.sol";
 import "../LendingRegistry.sol";
-
-struct YStrategyParams {
-    uint256 performanceFee; // Strategist's fee (basis points)
-    uint256 activation; // Activation block.timestamp
-    uint256 debtRatio; // Maximum borrow amount (in BPS of total assets)
-    uint256 minDebtPerHarvest; // Lower limit on the increase of debt since last harvest
-    uint256 maxDebtPerHarvest; // Upper limit on the increase of debt since last harvest
-    uint256 lastReport; // block.timestamp of the last time a report occured
-    uint256 totalDebt; // Total outstanding debt that Strategy has (in underlying?)
-    uint256 totalGain; // Total returns that Strategy has realized for Vault (in underlying?)
-    uint256 totalLoss; // Total losses that Strategy has realized for Vault
-}
-
-interface IYToken {
-    function expectedReturn(address ystrategy) external view returns (uint256 valueRealisedSinceLastReport);
-    function withdrawalQueue(uint256 ystrategyIndex) external view returns (address ystrategy);
-    function strategies(address ystrategy) external view returns (YStrategyParams calldata);
-}
-
-/*
-ABI for expectedReturn on the strategy
-  {
-    "stateMutability": "view",
-    "type": "function",
-    "name": "expectedReturn",
-    "inputs": [
-      {
-        "name": "strategy",
-        "type": "address"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256"
-      }
-    ]
-  },
-*/
 
 contract LendingLogicYearn is Ownable, ILendingLogic {
     using SafeMath for uint256;
@@ -60,47 +22,50 @@ contract LendingLogicYearn is Ownable, ILendingLogic {
     }
 
     function getAPRFromWrapped(address wrapped) public view override returns (uint256 apr) {
-        // TODO: check wrapped is a IYToken?
-        // TODO: handle multiple strategies
         /* multiple strategies:
-            as each strategy has a different harvest period and different debts, they can't be summed.
-            one simplistic approach is to average the calculated APRs, but a product of a sum is
-            not the same as a sum of a product, so it will be out.
-            i.e. sum the total gains, each scaled to a year (so they *can* be summed) and divided that
-            by the sum of the strategy debts
+            as each strategy has a different harvest period, different debts, and different fees
+            they can't be summed
+            so, sum the gains, scaled to a year (so they *can* be summed), with fee subtracted 
+            then divided that by the sum of the strategy debts
             for 1 strategy, its the same thing :-) 
+            this is hinted at here: https://docs.yearn.finance/getting-started/guides/how-to-understand-yvault-roi
+            in the non-curve assets infographic where it says, 
+            "the yield calculated ... is the sum of all the active strategies" 
         */
         IYToken yv = IYToken(wrapped);
-        address ystrategy = yv.withdrawalQueue(0); // 0xFf72f7C5f64ec2fd79B57d1A69C3311C1bB3EEF1
-        uint256 returnSinceLastReport;
-        YStrategyParams memory yStrategyParams = yv.strategies(ystrategy);
-        /* from the yv contract code:
-        uint256 strategy_lastReport = wrapped.strategies[strategy].lastReport
-        uint256 timeSinceLastHarvest = block.timestamp - strategy_lastReport
-        uint256 totalHarvestTime = strategy_lastReport - wrapped.strategies[strategy].activation 
-        returnSinceLastReport = wrapped.strategies[strategy].totalGain
-            * wrapped.timeSinceLastHarvest
-            / wrapped.totalHarvestTime
-        */
-        // TODO: do the losses need to be taken into account in the above?
-        // need to divide by wrapped[strategy].totalDebt to getpercentage
-        // but total Debt has potentially changed over the time - is ok to get an average?
-        // TODO: check if totalDebt is 0 then it's not in the withdrawal queue
-        //returnSinceLastReport = yv.expectedReturn(ystrategy);
-        // also need to scale by 10**18 to divide by the totalDebt, hence 10**16
-        //apr = (returnSinceLastReport * 10 ** 20) / yStrategyParams.totalDebt;
+        // there's no length available for the withdrawal queue, so use the max and stop when we get a null strategy
 
-        uint256 timeSinceLastHarvest = block.timestamp - yStrategyParams.lastReport;
-        uint256 totalHarvestTime = yStrategyParams.lastReport - yStrategyParams.activation;
-        returnSinceLastReport = yStrategyParams.totalGain * timeSinceLastHarvest / totalHarvestTime;
-        apr = returnSinceLastReport * 10 ** 18 / yStrategyParams.totalDebt;
+        uint256 totalReturnSinceLastReportScaledToYear = 0;
+        uint256 totalTotalDebt = 0;
+        for (uint256 s = 0; s < YToken.MAXIMUM_STRATEGIES; s++) {
+            address yStrategy = yv.withdrawalQueue(s);
+            if (yStrategy == address(0)) break; // a null strategy marks the end of the queue;
+            if (!IYStrategy(yStrategy).isActive()) continue; // next strategy, please
+            // got a strategy, so look at it's parameters
+            YStrategyParams memory yStrategyParams = yv.strategies(yStrategy);
+            if (yStrategyParams.totalDebt == 0) continue; // no debt so nothing to see here, move along
 
-        // scale it to a year, i.e. no compounding, for APR
-        apr = apr * 31_556_952 / timeSinceLastHarvest;
-        // normalise it to 1, instead of basis of a percent
+            // calculate the gains
+            uint256 timeSinceLastHarvest = block.timestamp - yStrategyParams.lastReport;
+            uint256 totalHarvestTime = yStrategyParams.lastReport - yStrategyParams.activation;
+            if (timeSinceLastHarvest > 0 && totalHarvestTime > 0) {
+                // must have some time, or there are no gains (also, more importantly, to avoid divide by zeros)
+                uint256 returnSinceLastReport = yStrategyParams.totalGain * timeSinceLastHarvest / totalHarvestTime;
+                // subtract the performance fee to this return as they are applied every harvest
+                // i.e. the totalGain aready has fees applied but the return since harvest hasn't
+                // see https://docs.yearn.finance/getting-started/products/yvaults/overview for more detail
+                // performance fee is bps, e.g. 1 = 0.0001, so scale it by 10**4
+                returnSinceLastReport *= (1 * 10 ** 4 - yStrategyParams.performanceFee);
 
-        // TODO: subtract the performance fee (yStrategyParams.performanceFee)?
-        // performance fee is bps, i.e. scaled to 6 digits, need to multiply it by 10*12 first?
+                // totalReturnSinceLastReportScaledToYear += yStrategyParams.totalGain * 31_556_952 / totalHarvestTime;
+                totalReturnSinceLastReportScaledToYear +=
+                    returnSinceLastReport * totalHarvestTime / timeSinceLastHarvest * 31_556_952 / totalHarvestTime;
+            }
+            totalTotalDebt += yStrategyParams.totalDebt;
+            // get the decimal in the right place:
+            // we already scaled by 10**4 when deducting the fee so just to 10**14 more
+            apr = totalReturnSinceLastReportScaledToYear * 10 ** 14 / totalTotalDebt;
+        }
     }
 
     function getAPRFromUnderlying(address underlying) external view override returns (uint256) {

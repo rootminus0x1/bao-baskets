@@ -21,7 +21,7 @@ contract LogConsole is ILog {
 // log(v("name=").v("value").v("name2=").v("value2")) <--
 // log(nv("name", "value").nv("name2", "value"))
 
-// TODO: looks like there's a limit to how many of a contract can be created
+// looks like there's a limit to how many of a contract can be created
 // so need to externalise the stack of logbuilders that are created by
 // LoggingTest
 // to do this we create a struct containing the LogBuilder data,
