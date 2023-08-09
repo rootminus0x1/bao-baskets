@@ -8,6 +8,8 @@ import {console2 as console} from "forge-std/console2.sol";
 import {Test} from "forge-std/Test.sol";
 
 import {IYToken, YStrategyParams, IYStrategy} from "contracts/Interfaces/IYToken.sol";
+import "contracts/Interfaces/IERC20.sol";
+
 import {LendingRegistry} from "contracts/LendingRegistry.sol";
 import {LendingLogicYearn} from "contracts/Strategies/LendingLogicYearn.sol";
 import {ILendingLogic} from "contracts/Interfaces/ILendingLogic.sol";
@@ -19,7 +21,11 @@ import {ChainState, Roller} from "./ChainState.sol";
 import {Deployed, ChainStateLending} from "./Deployed.sol";
 import {TestLendingLogic} from "./TestLendingLogic.sol";
 import {TestData} from "./TestData.t.sol";
-// import {Dai} from "./Dai.t.sol";
+
+// TODO: split this file into 3
+///////////////////////////////////////////////////////////////////////////////////////////////////
+// DIRECT LENDING LOGIC INTERACTIONS
+///////////////////////////////////////////////////////////////////////////////////////////////////
 
 abstract contract LogicYearn {
     address public wrapped;
@@ -46,16 +52,134 @@ abstract contract LogicYearn {
 
 abstract contract LogicYearnLUSD is LogicYearn(Deployed.YVLUSD, Deployed.LUSD) {}
 
+contract TestApr is Test, LogicYearnLUSD {
+    struct Result {
+        uint256 blockNumber;
+        uint256 apr;
+    }
+
+    function test_aprValues() public {
+        // test a selection of blocks against known values
+        Result[2] memory results = [
+            Result(16919180, 60163416778911030 /* was 60163416778910791 */ ),
+            Result(17827230, 29042022965324392 /* was 29042022965321539 */ )
+        ];
+
+        string memory url = vm.envString("MAINNET_RPC_URL");
+        //console.log("MAINNET_RPC_URL=%s", url);
+        for (uint256 r = 0; r < results.length; r++) {
+            uint256 fork = vm.createFork(url);
+            vm.selectFork(fork);
+            vm.rollFork(results[r].blockNumber);
+            createLogic();
+            uint256 apr = lendingLogicYearn.getAPRFromWrapped(wrapped);
+            assertEq(apr, results[r].apr, Useful.concat("apr for block ", Useful.toString(results[r].blockNumber)));
+        }
+    }
+}
+
+contract TestYearnLogicBackTest_long is Test, LogicYearnLUSD {
+    struct TimeSeriesItem {
+        string date;
+        string value;
+    }
+
+    function test_historicalRates_long() public {
+        // TODO: check that the correlation > 0.9
+        TimeSeriesItem[10] memory timeSeries = [
+            TimeSeriesItem({date: "2023-03-11 22:25:00", value: "8.48%"}),
+            TimeSeriesItem({date: "2023-03-26 23:29:00", value: "7.21%"}),
+            TimeSeriesItem({date: "2023-04-10 23:34:00", value: "7.14%"}),
+            TimeSeriesItem({date: "2023-05-04 04:27:00", value: "4.97%"}),
+            TimeSeriesItem({date: "2023-05-19 11:39:00", value: "3.87%"}),
+            TimeSeriesItem({date: "2023-06-03 11:40:00", value: "3.16%"}),
+            TimeSeriesItem({date: "2023-06-18 11:40:00", value: "2.70%"}),
+            TimeSeriesItem({date: "2023-07-03 11:41:00", value: "2.72%"}),
+            TimeSeriesItem({date: "2023-07-18 11:43:00", value: "3.07%"}),
+            TimeSeriesItem({date: "2023-08-02 12:14:00", value: "2.63%"})
+        ];
+        string memory url = vm.envString("MAINNET_RPC_URL");
+        // console.log("MAINNET_RPC_URL=%s", url);
+        console.log("Date, Yearn, Bao");
+        for (uint256 i = 0; i < timeSeries.length; i++) {
+            uint256 fork = vm.createFork(url);
+            vm.selectFork(fork);
+
+            uint256 dt = DateUtils.convertDateTimeStringToTimestamp(timeSeries[i].date);
+            Roller.rollForkBefore(vm, dt + 60 * 60); // add an hour
+
+            createLogic();
+            uint256 apr = lendingLogicYearn.getAPRFromWrapped(wrapped);
+            console.log(
+                "%s, %s, %s%%",
+                DateUtils.convertTimestampToDateTimeString(block.timestamp),
+                timeSeries[i].value,
+                Useful.toStringScaled(apr, 18 - 2)
+            );
+        }
+    }
+
+    function test_detailedhistoricalRates_long() public {
+        string memory startDateTime = "2023-03-12 12:25:00"; // about as early as you can go for yvLUSD
+        string memory finishDateTime = "2023-08-02 12:14:00";
+        //string memory finishDateTime = "2023-03-15 12:30:00"; // test for 1 day
+
+        uint256 startTimestamp = DateUtils.convertDateTimeStringToTimestamp(startDateTime);
+        uint256 finishTimestamp = DateUtils.convertDateTimeStringToTimestamp(finishDateTime);
+
+        // TODO: rationalise the following code into a chainfork that supports multiple forks
+        string memory url = vm.envString("MAINNET_RPC_URL");
+        // console.log("MAINNET_RPC_URL=%s", url);
+
+        // do a daily sample
+        uint256 samplePeriod = 60 * 60 * 24; // one a day; <-- parameter
+        uint256 numberOfSamples = (finishTimestamp - startTimestamp) / samplePeriod;
+
+        console.log("numberOfSamples=%d", numberOfSamples);
+        // work out how many blocks to go per sample Period
+        uint256 fork = vm.createFork(url);
+        vm.selectFork(fork);
+        Roller.rollForkBefore(vm, finishTimestamp);
+        uint256 finishBlock = block.number;
+        Roller.rollForkBefore(vm, startTimestamp);
+        uint256 startBlock = block.number;
+
+        uint256 blocksPerSamplePeriod = (finishBlock - startBlock) / numberOfSamples;
+        console.log("sampling between blocks %d and %d", startBlock, finishBlock);
+
+        console.log("block, Date, Bao");
+        uint256 currentBlock = block.number;
+        while (currentBlock <= finishBlock) {
+            createLogic();
+            uint256 apr = lendingLogicYearn.getAPRFromWrapped(wrapped);
+            console.log(
+                "%d, %s, %s%%",
+                currentBlock,
+                DateUtils.convertTimestampToDateTimeString(block.timestamp),
+                Useful.toStringScaled(apr, 18 - 2)
+            );
+            currentBlock += blocksPerSamplePeriod;
+            fork = vm.createFork(url);
+            vm.selectFork(fork);
+            vm.rollFork(currentBlock);
+        }
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+// LENDING LOGIC VIA LENDING REGISTRY INTERACTIONS
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
 abstract contract TestLendingLogicYearn is LogicYearn, TestLendingLogic {
     uint256 expectedApr;
     string underlyingName;
 
-    constructor(address _wrapped, address _underlying, string memory ulName, uint256 _apr)
+    constructor(address _wrapped, address _underlying, string memory ulName, uint256 _apr, uint256 _exchangeRate)
         LogicYearn(_wrapped, _underlying)
     {
         underlyingName = ulName;
         LogicYearn.createLogic(); // do this before below
-        TestLendingLogic.initialise(LENDINGLOGICYEARN, PROTOCOLYEARN, _wrapped, _underlying);
+        TestLendingLogic.initialise(LENDINGLOGICYEARN, PROTOCOLYEARN, _wrapped, _underlying, _apr, _exchangeRate);
 
         expectedApr = _apr;
 
@@ -66,8 +190,6 @@ abstract contract TestLendingLogicYearn is LogicYearn, TestLendingLogic {
         lendingRegistry.setProtocolToLogic(PROTOCOLYEARN, LENDINGLOGICYEARN);
         lendingRegistry.setUnderlyingToProtocolWrapped(underlying, PROTOCOLYEARN, wrapped);
         vm.stopPrank();
-
-        //TestLendingLogic.create(LENDINGLOGICYEARN, PROTOCOLYEARN, wrapped, underlying);
     }
 
     function test_getApr() public {
@@ -167,134 +289,225 @@ abstract contract TestLendingLogicYearn is LogicYearn, TestLendingLogic {
 }
 
 contract TestLendingLogicYearnLUSD is
-    TestLendingLogicYearn(Deployed.YVLUSD, Deployed.LUSD, "LUSD", 28554710897801830)
+    TestLendingLogicYearn(Deployed.YVLUSD, Deployed.LUSD, "LUSD", 28554710897801830, 1087633901025148253)
 {}
 
 contract TestLendingLogicYearnUSDC is
-    TestLendingLogicYearn(Deployed.YVUSDC, Deployed.USDC, "USDC", 26008016921457931)
+    TestLendingLogicYearn(Deployed.YVUSDC, Deployed.USDC, "USDC", 26008016921457931, 1041000)
 {}
 
-contract TestLendingLogicYearnDAI is TestLendingLogicYearn(Deployed.YVDAI, Deployed.DAI, "DAI", 33170550474952463) {}
+contract TestLendingLogicYearnDAI is
+    TestLendingLogicYearn(Deployed.YVDAI, Deployed.DAI, "DAI", 33170550474952463, 1064233153235265863)
+{}
 
 contract TestLendingLogicYearnUSDT is
-    TestLendingLogicYearn(Deployed.YVUSDT, Deployed.USDT, "USDT", 21175457302527667)
+    TestLendingLogicYearn(Deployed.YVUSDT, Deployed.USDT, "USDT", 21175457302527667, 1022502)
 {}
 
 // TUSD gives over 200% APR, which is wrong :-)
 contract TestLendingLogicYearnTUSD is
-    TestLendingLogicYearn(Deployed.YVTUSD, Deployed.TUSD, "TUSD", 2216414571994840630)
+    TestLendingLogicYearn(Deployed.YVTUSD, Deployed.TUSD, "TUSD", 2216414571994840630, 1055297594827238398)
 {}
 
-contract TestApr is Test, LogicYearnLUSD {
-    struct Result {
-        uint256 blockNumber;
-        uint256 apr;
+///////////////////////////////////////////////////////////////////////////////////////////////////
+// LENDING MANAGER interactions
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+contract TestYearnLending is ChainStateLending {
+    address underlying = Deployed.LUSD;
+    string underlyingName = "LUSD";
+    address yToken = Deployed.YVLUSD;
+    uint256 amount;
+    uint256 startWalletAmount;
+    address wallet;
+
+    constructor() {
+        amount = 1000 * 1e18; // $1000, no less
+        wallet = address(this);
     }
 
-    function test_aprValues() public {
-        // test a selection of blocks against known values
-        Result[2] memory results = [
-            Result(16919180, 60163416778911030 /* was 60163416778910791 */ ),
-            Result(17827230, 29042022965324392 /* was 29042022965321539 */ )
-        ];
-
-        string memory url = vm.envString("MAINNET_RPC_URL");
-        console.log("MAINNET_RPC_URL=%s", url);
-        for (uint256 r = 0; r < results.length; r++) {
-            uint256 fork = vm.createFork(url);
-            vm.selectFork(fork);
-            vm.rollFork(results[r].blockNumber);
-            createLogic();
-            uint256 apr = lendingLogicYearn.getAPRFromWrapped(wrapped);
-            assertEq(apr, results[r].apr, Useful.concat("apr for block ", Useful.toString(results[r].blockNumber)));
-        }
-    }
-}
-
-contract TestYearnLogicBackTest_long is Test, LogicYearnLUSD {
-    struct TimeSeriesItem {
-        string date;
-        string value;
+    function setUp() public {
+        // get some (more) dosh
+        deal(underlying, wallet, amount);
+        startWalletAmount = IERC20(underlying).balanceOf(wallet);
+        // also get some juice // TODO: check this is needed
+        vm.deal(wallet, 1 ether);
     }
 
-    function test_historicalRates_long() public {
-        // TODO: check that the correlation > 0.9
-        TimeSeriesItem[10] memory timeSeries = [
-            TimeSeriesItem({date: "2023-03-11 22:25:00", value: "8.48%"}),
-            TimeSeriesItem({date: "2023-03-26 23:29:00", value: "7.21%"}),
-            TimeSeriesItem({date: "2023-04-10 23:34:00", value: "7.14%"}),
-            TimeSeriesItem({date: "2023-05-04 04:27:00", value: "4.97%"}),
-            TimeSeriesItem({date: "2023-05-19 11:39:00", value: "3.87%"}),
-            TimeSeriesItem({date: "2023-06-03 11:40:00", value: "3.16%"}),
-            TimeSeriesItem({date: "2023-06-18 11:40:00", value: "2.70%"}),
-            TimeSeriesItem({date: "2023-07-03 11:41:00", value: "2.72%"}),
-            TimeSeriesItem({date: "2023-07-18 11:43:00", value: "3.07%"}),
-            TimeSeriesItem({date: "2023-08-02 12:14:00", value: "2.63%"})
-        ];
-        string memory url = vm.envString("MAINNET_RPC_URL");
-        console.log("MAINNET_RPC_URL=%s", url);
-        console.log("Date, Yearn, Bao");
-        for (uint256 i = 0; i < timeSeries.length; i++) {
-            uint256 fork = vm.createFork(url);
-            vm.selectFork(fork);
+    function lend(uint256 _amount) private returns (bool approved, uint256 sharesTransferred) {
+        // Set ERC-20 approval
+        // targets[0] = _underlying;
+        // data[0] = abi.encodeWithSelector(underlying.approve.selector, yToken, _amount);
+        approved = IERC20(underlying).approve(yToken, _amount);
 
-            uint256 dt = DateUtils.convertDateTimeStringToTimestamp(timeSeries[i].date);
-            Roller.rollForkBefore(vm, dt + 60 * 60); // add an hour
-
-            createLogic();
-            uint256 apr = lendingLogicYearn.getAPRFromWrapped(wrapped);
-            console.log(
-                "%s, %s, %s%%",
-                DateUtils.convertTimestampToDateTimeString(block.timestamp),
-                timeSeries[i].value,
-                Useful.toStringScaled(apr, 18 - 2)
-            );
-        }
+        // approve in yvLUSD - no need to because there isn't another spender
+        // Deposit into Yearn
+        // targets[1] = yToken;
+        // data[1] = abi.encodeWithSelector(IYToken.deposit.selector, _amount);
+        sharesTransferred = IYToken(yToken).deposit(_amount);
     }
 
-    function test_detailedhistoricalRates_long() public {
-        string memory startDateTime = "2023-03-12 12:25:00"; // about as early as you can go for yvLUSD
-        string memory finishDateTime = "2023-08-02 12:14:00";
-        //string memory finishDateTime = "2023-03-15 12:30:00"; // test for 1 day
-
-        uint256 startTimestamp = DateUtils.convertDateTimeStringToTimestamp(startDateTime);
-        uint256 finishTimestamp = DateUtils.convertDateTimeStringToTimestamp(finishDateTime);
-
-        // TODO: rationalise the following code into a chainfork that supports multiple forks
-        string memory url = vm.envString("MAINNET_RPC_URL");
-        console.log("MAINNET_RPC_URL=%s", url);
-
-        // do a daily sample
-        uint256 samplePeriod = 60 * 60 * 24; // one a day; <-- parameter
-        uint256 numberOfSamples = (finishTimestamp - startTimestamp) / samplePeriod;
-
-        console.log("numberOfSamples=%d", numberOfSamples);
-        // work out how many blocks to go per sample Period
-        uint256 fork = vm.createFork(url);
-        vm.selectFork(fork);
-        Roller.rollForkBefore(vm, finishTimestamp);
-        uint256 finishBlock = block.number;
-        Roller.rollForkBefore(vm, startTimestamp);
-        uint256 startBlock = block.number;
-
-        uint256 blocksPerSamplePeriod = (finishBlock - startBlock) / numberOfSamples;
-        console.log("sampling between blocks %d and %d", startBlock, finishBlock);
-
-        console.log("block, Date, Bao");
-        uint256 currentBlock = block.number;
-        while (currentBlock <= finishBlock) {
-            createLogic();
-            uint256 apr = lendingLogicYearn.getAPRFromWrapped(wrapped);
-            console.log(
-                "%d, %s, %s%%",
-                currentBlock,
-                DateUtils.convertTimestampToDateTimeString(block.timestamp),
-                Useful.toStringScaled(apr, 18 - 2)
-            );
-            currentBlock += blocksPerSamplePeriod;
-            fork = vm.createFork(url);
-            vm.selectFork(fork);
-            vm.rollFork(currentBlock);
-        }
+    function unlend(uint256 _amount) private returns (uint256 sharesTransferred) {
+        // targets[0] = _wrapped;
+        // data[0] = abi.encodeWithSelector(ICToken.withdraw.selector, _amount);
+        sharesTransferred = IYToken(yToken).withdraw(_amount);
     }
+
+    function test_lendDetails() public {
+        assertEq(
+            IERC20(underlying).allowance(wallet, yToken),
+            0,
+            Useful.concat("approval for 0 failed for underlying ", underlyingName)
+        );
+
+        // vv here it is - the lend
+        (bool approved, uint256 sharesTransferred) = lend(amount);
+        // TODO: check against the reported pricepershare
+        assertTrue(approved, "ERC-20 amount approved (or so it says)");
+        // these are the things that should have chhanged as a result of the lend
+        assertEq(
+            IERC20(underlying).allowance(wallet, yToken),
+            0,
+            Useful.concat("allowance should be back at 0 for underlying ", underlyingName)
+        );
+        assertLe(
+            sharesTransferred, amount, "number of shares returned should be slightly less than the amount deposited"
+        );
+        assertEq(
+            IERC20(yToken).balanceOf(wallet),
+            sharesTransferred,
+            Useful.concat("shares should be transferred to the calling wallet for yv", underlyingName)
+        );
+        assertEq(
+            IERC20(underlying).balanceOf(wallet),
+            startWalletAmount - amount,
+            Useful.concat("incorrect amount left in wallet", underlyingName)
+        );
+        assertEq(
+            IERC20(underlying).allowance(wallet, yToken),
+            0,
+            Useful.concat("allowance has correctly returned to 0 for underlying ", underlyingName)
+        );
+        assertEq(
+            IERC20(underlying).balanceOf(yToken),
+            amount,
+            Useful.concat("yearn now has correct anmount of underlying ", underlyingName)
+        );
+
+        // try to lend more than is in the wallet
+        /* lending manager prohibits this
+        (bool failedApproved, uint256 failedShares) = lend(walletAmount + 1, false);
+        assertTrue(failedApproved, "ERC-20 amount approved (or so it says)");
+        assertEq(failedShares, 0, "no shares should be transferred");
+        assertEq(
+            IERC20(underlying).allowance(wallet, yToken),
+            0,
+            Useful.concat("allowance should be back at 0 for underlying ", underlyingName)
+        );
+        assertEq(
+            IERC20(underlying).balanceOf(wallet),
+            walletAmount,
+            Useful.concat("shoulld not have left wallet ", underlyingName)
+        );
+        assertEq(
+            IERC20(yToken).balanceOf(wallet),
+            sharesTransferred,
+            Useful.concat("shares should not be transferred to the calling wallet for yv", underlyingName)
+        );
+        */
+
+        uint256 underlyingReturned1 = unlend(sharesTransferred / 2);
+        assertEq(
+            IERC20(underlying).balanceOf(yToken),
+            amount - underlyingReturned1,
+            Useful.concat("yearn should now have half the underlying remaining ", underlyingName)
+        );
+        assertEq(
+            IERC20(underlying).balanceOf(wallet),
+            underlyingReturned1,
+            Useful.concat("wallet should now have the other half the underlying ", underlyingName)
+        );
+        assertApproxEqAbs(
+            IERC20(yToken).balanceOf(wallet),
+            sharesTransferred - sharesTransferred / 2,
+            1,
+            Useful.concat("shares should be transferred out of the wallet ", underlyingName)
+        );
+
+        uint256 underlyingReturned2 = unlend(sharesTransferred - sharesTransferred / 2); // in case it is odd
+        assertApproxEqAbs(
+            underlyingReturned1 + underlyingReturned2,
+            amount,
+            2, // 2 because there are 2 rounding error possibilities, one for each unlend
+            Useful.concat("should have returned all the underlying ", underlyingName)
+        );
+
+        assertApproxEqAbs(
+            IERC20(underlying).balanceOf(yToken),
+            0,
+            2,
+            Useful.concat("yearn should now have no remainining underlying ", underlyingName)
+        );
+        assertApproxEqAbs(
+            IERC20(underlying).balanceOf(wallet),
+            amount,
+            2,
+            Useful.concat("wallet should now have all the underlying ", underlyingName)
+        );
+        assertEq(
+            IERC20(yToken).balanceOf(wallet),
+            0, // no errors here
+            Useful.concat("all shares should be transferred out of the wallet ", underlyingName)
+        );
+    }
+
+    /*
+    function test_unlendDetails() public {
+
+
+        uint256 sharesTransferred = unlend(amount);
+
+        assertEq(
+            IERC20(underlying).allowance(wallet, yToken),
+            0,
+            Useful.concat("approval for 0 failed for underlying ", underlyingName)
+        );
+
+        (bool approved, uint256 sharesTransferred) = lend(amount);
+        assertTrue(approved, "ERC-20 amount approved (or so it says)");
+        assertEq(
+            IERC20(underlying).allowance(wallet, yToken),
+            amount,
+            Useful.concat("approval for amount failed for underlying ", underlyingName)
+        );
+
+        assertLe(
+            sharesTransferred, amount, "number of shares returned should be slightly less than the amount deposited"
+        );
+        assertEq(
+            IERC20(yToken).balanceOf(wallet),
+            sharesTransferred,
+            Useful.concat("shares should be transferred to the calling wallet for yv", underlyingName)
+        );
+        assertEq(
+            IERC20(underlying).balanceOf(wallet),
+            walletAmount - amount,
+            Useful.concat("incorrect amount left in wallet", underlyingName)
+        );
+        assertEq(
+            IERC20(underlying).allowance(wallet, yToken),
+            0,
+            Useful.concat("allowance has correctly returned to 0 for underlying ", underlyingName)
+        );
+        assertEq(
+            IERC20(underlying).balanceOf(yToken),
+            amount,
+            Useful.concat("yearn now has correct anmount of underlying ", underlyingName)
+        );
+        // now the unlend
+        // do it in two lots
+        uint256 sharesReturned = unlend() 
+
+    }
+    */
 }

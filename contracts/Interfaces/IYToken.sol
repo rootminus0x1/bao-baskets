@@ -28,6 +28,11 @@ interface IYToken {
     function expectedReturn(address ystrategy) external view returns (uint256 valueRealisedSinceLastReport);
     function withdrawalQueue(uint256 ystrategyIndex) external view returns (address ystrategy);
     function strategies(address ystrategy) external view returns (YStrategyParams calldata);
+    function approve(address spender, uint256 underlyingAmount) external returns (bool success);
+    function allowance(address sender, address spender) external returns (uint256 underlyingAmount);
+    function deposit(uint256 underlyingAmount) external returns (uint256 vaultShares);
+    function withdraw(uint256 sharesAmount) external returns (uint256 vaultShares);
+    function pricePerShare() external view returns (uint256 price);
 }
 
 interface IYStrategy {

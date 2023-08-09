@@ -8,6 +8,7 @@ import {console2 as console} from "forge-std/console2.sol";
 
 import {ILendingLogic} from "contracts/Interfaces/ILendingLogic.sol";
 import {IERC20} from "contracts/Interfaces/IERC20.sol";
+import {IEIP20} from "contracts/Interfaces/IEIP20.sol";
 
 import {Deployed, ChainStateLending} from "./Deployed.sol";
 import {TestData} from "./TestData.t.sol";
@@ -17,15 +18,34 @@ abstract contract TestLendingLogic is ChainStateLending, TestData {
     address private logic;
     bytes32 private protocol;
     address private wrapped;
+    string private wrappedName;
+    uint256 private wrappedDecimals;
     address private underlying;
+    string private underlyingName;
+    uint256 private underlyingDecimals;
+    uint256 private apr;
+    uint256 private exchangeRate;
 
     ILendingLogic iLogic;
 
-    function initialise(address _logic, bytes32 _protocol, address _wrapped, address _underlying) public {
+    function initialise(
+        address _logic,
+        bytes32 _protocol,
+        address _wrapped,
+        address _underlying,
+        uint256 _apr,
+        uint256 _exchangeRate
+    ) public {
         logic = _logic;
         protocol = _protocol;
         wrapped = _wrapped;
+        wrappedName = IEIP20(wrapped).symbol();
+        wrappedDecimals = IEIP20(wrapped).decimals();
         underlying = _underlying;
+        underlyingName = IEIP20(underlying).symbol();
+        underlyingDecimals = IEIP20(underlying).decimals();
+        apr = _apr;
+        exchangeRate = _exchangeRate;
 
         iLogic = ILendingLogic(logic);
     }
@@ -66,6 +86,21 @@ abstract contract TestLendingLogic is ChainStateLending, TestData {
         assertEq(bestProtocol, protocol, "expected the compound protocol");
     }
 
+    function test_exchangeRate() public {
+        // recipe uses the exchange rate
+        uint256 one = 10 ** wrappedDecimals;
+        uint256 thisExchangeRate = iLogic.exchangeRate(wrapped); // wrapped to underlying
+            // uint256 underlyingAmount = one * thisExchangeRate / (1e18) + 1;
+        uint256 underlyingAmount = one * thisExchangeRate / (10 ** underlyingDecimals) + 1;
+
+        console.log(
+            "you can get %s %s for 1 %s",
+            Useful.toStringScaled(underlyingAmount, underlyingDecimals),
+            underlyingName,
+            wrappedName
+        );
+    }
+
     function test_Logic() public {
         // check out the underlying contract
         uint256 underlyingAmount = 12345;
@@ -80,15 +115,16 @@ abstract contract TestLendingLogic is ChainStateLending, TestData {
         selectedProtocols[0] = protocol;
         (bestApr, bestProtocol) = lendingRegistry.getBestApr(underlying, selectedProtocols);
 
-        uint256 apr = iLogic.getAPRFromWrapped(wrapped);
-        assertEq(apr, iLogic.getAPRFromUnderlying(underlying), "underlying and wrapped have different APRs");
-        assertEq(bestApr, apr, "apr not the same as bestApr");
+        uint256 thisApr = iLogic.getAPRFromWrapped(wrapped);
+        assertEq(thisApr, iLogic.getAPRFromUnderlying(underlying), "underlying and wrapped have different APRs");
+        assertEq(bestApr, thisApr, "thisAapr not the same as bestApr");
 
-        // not sure how to test these
-        console.log("exchange rate", iLogic.exchangeRate(wrapped));
-        console.log("exchange rate view", iLogic.exchangeRateView(wrapped));
-        console.log("APR: %s", apr);
-        console.log("APR: %s%%", Useful.toStringScaled(apr, 18 - 2));
+        assertApproxEqAbs(thisApr, apr, 1e15, "apr doesn't match");
+        assertApproxEqAbs(iLogic.exchangeRate(wrapped), exchangeRate, 1e16, "exchangeRate doesn't match");
+        assertApproxEqAbs(iLogic.exchangeRateView(wrapped), exchangeRate, 1e16, "exchangeRateView doesn't match");
+        assertApproxEqAbs(
+            iLogic.exchangeRate(wrapped), iLogic.exchangeRateView(wrapped), 1e16, "exchangeRates don't match"
+        );
 
         // test lending
         uint256 lendingAmount = underlyingAmount / 2;
@@ -96,22 +132,12 @@ abstract contract TestLendingLogic is ChainStateLending, TestData {
         bytes[] memory data;
         (targets, data) = iLogic.lend(underlying, lendingAmount, wallet);
         assertEq(targets.length, data.length, "lend return arrays must be the same size");
-        assertEq(targets.length, 3, "3 returned TX's");
-        assertEq(targets[0], underlying, "approve 0 on the underlying");
+        assertEq(targets[0], underlying, "approve on the underlying");
         assertEq(data[0].length, 68, "4bytes + two parameters = 68 bytes");
-        assertEq(Useful.extractUInt256(data[0], 36), 0, "must be 0");
-        assertEq(targets[1], underlying, "approve amount on the underlying");
-        assertEq(data[1].length, 68, "4bytes + two parameters = 68 bytes");
-        assertEq(Useful.extractUInt256(data[1], 36), lendingAmount, "must be amount");
 
-        /*
-        clog("lend(", lendingAmount, ") -> (");
-        for (uint256 t = 0; t < targets.length; t++) {
-            clog(targets[t], " ->");
-            console.logBytes(data[t]);
-        }
-        clog(")");
-        }
-        */
+        (targets, data) = iLogic.unlend(wrapped, 100, wallet);
+        assertEq(targets.length, data.length, "unlend return arrays must be the same size");
+        assertEq(targets[0], wrapped, "unlend on the wrapped");
+        assertEq(data[0].length, 36, "4bytes + one parameters = 36 bytes");
     }
 }

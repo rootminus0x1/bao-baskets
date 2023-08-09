@@ -13,9 +13,9 @@ contract ChainFork is Test {
     uint256 public fork;
 
     constructor() {
-        //startLogging("ChainFork");
+        // startLogging("ChainFork");
         string memory url = vm.envString("MAINNET_RPC_URL");
-        console.log("MAINNET_RPC_URL=%s", url);
+        // console.log("MAINNET_RPC_URL=%s", url);
         fork = vm.createFork(url);
         vm.selectFork(fork);
         assertEq(vm.activeFork(), fork);

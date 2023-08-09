@@ -31,7 +31,12 @@ contract TestLendingRegistry is ChainStateLending, TestData {
 contract TestCompoundDai is TestLendingLogic {
     constructor() {
         TestLendingLogic.initialise(
-            Deployed.LENDINGLOGICCOMPOUND, Deployed.PROTOCOLCOMPOUND, Deployed.CDAI, Deployed.DAI
+            Deployed.LENDINGLOGICCOMPOUND,
+            Deployed.PROTOCOLCOMPOUND,
+            Deployed.CDAI,
+            Deployed.DAI,
+            22280000775866001,
+            223050726302909685359821630
         );
     }
 
@@ -44,7 +49,12 @@ contract TestCompoundDai is TestLendingLogic {
 contract TestCompoundComp is TestLendingLogic {
     constructor() {
         TestLendingLogic.initialise(
-            Deployed.LENDINGLOGICCOMPOUND, Deployed.PROTOCOLCOMPOUND, Deployed.CCOMP, Deployed.COMP
+            Deployed.LENDINGLOGICCOMPOUND,
+            Deployed.PROTOCOLCOMPOUND,
+            Deployed.CCOMP,
+            Deployed.COMP,
+            19822320235702758,
+            204579089505601083101843661
         );
     }
 }
@@ -52,7 +62,12 @@ contract TestCompoundComp is TestLendingLogic {
 contract TestCompoundAave is TestLendingLogic {
     constructor() {
         TestLendingLogic.initialise(
-            Deployed.LENDINGLOGICCOMPOUND, Deployed.PROTOCOLCOMPOUND, Deployed.CAAVE, Deployed.AAVE
+            Deployed.LENDINGLOGICCOMPOUND,
+            Deployed.PROTOCOLCOMPOUND,
+            Deployed.CAAVE,
+            Deployed.AAVE,
+            443497473591241,
+            206253078001934786258575925
         );
     }
 }

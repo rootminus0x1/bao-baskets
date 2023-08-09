@@ -33,10 +33,10 @@ contract LendingLogicYearn is Ownable, ILendingLogic {
             "the yield calculated ... is the sum of all the active strategies" 
         */
         IYToken yv = IYToken(wrapped);
-        // there's no length available for the withdrawal queue, so use the max and stop when we get a null strategy
 
         uint256 totalReturnSinceLastReportScaledToYear = 0;
         uint256 totalTotalDebt = 0;
+        // there's no length available for the withdrawal queue, so use the max and stop when we get a null strategy
         for (uint256 s = 0; s < YToken.MAXIMUM_STRATEGIES; s++) {
             address yStrategy = yv.withdrawalQueue(s);
             if (yStrategy == address(0)) break; // a null strategy marks the end of the queue;
@@ -80,31 +80,31 @@ contract LendingLogicYearn is Ownable, ILendingLogic {
         override
         returns (address[] memory targets, bytes[] memory data)
     {
-        IERC20 underlying = IERC20(_underlying);
-
         targets = new address[](3);
         data = new bytes[](3);
 
         address yToken = lendingRegistry.underlyingToProtocolWrapped(_underlying, protocolKey);
 
-        // zero out approval to be sure
-        targets[0] = _underlying;
-        data[0] = abi.encodeWithSelector(underlying.approve.selector, yToken, 0);
-
         // Set approval
-        targets[1] = _underlying;
-        data[1] = abi.encodeWithSelector(underlying.approve.selector, yToken, _amount);
+        targets[0] = _underlying;
+        data[0] = abi.encodeWithSelector(IERC20(_underlying).approve.selector, yToken, _amount);
 
         // Deposit into Yearn
-        targets[2] = yToken;
-        // data[2] = abi.encodeWithSelector(IYToken.mint.selector, _amount);
+        targets[1] = yToken;
+        data[1] = abi.encodeWithSelector(IYToken(yToken).deposit.selector, _amount);
 
-        return (targets, data);
+        // zero out approval to be sure
+        // there's a non-zero chance that between the caller of this function checking the
+        // wallet amount of underlying and it executing the above transactions that the wallet
+        // may have some of it's underlying transferred out causing the deposit to fail,
+        // leaving the allowance at amount which is a bit sloppy.
+        targets[2] = _underlying;
+        data[2] = abi.encodeWithSelector(IERC20(_underlying).approve.selector, yToken, 0);
     }
 
-    function unlend(address _wrapped, uint256 _amount, address _tokenHolder)
+    function unlend(address _wrapped, uint256 _amount, address /* _tokenHolder */ )
         external
-        view
+        pure
         override
         returns (address[] memory targets, bytes[] memory data)
     {
@@ -112,16 +112,14 @@ contract LendingLogicYearn is Ownable, ILendingLogic {
         data = new bytes[](1);
 
         targets[0] = _wrapped;
-        // TODO: data[0] = abi.encodeWithSelector(ICToken.redeem.selector, _amount);
-
-        return (targets, data);
+        data[0] = abi.encodeWithSelector(IYToken(_wrapped).withdraw.selector, _amount);
     }
 
-    function exchangeRate(address _wrapped) external override returns (uint256) {
-        return 0; // TODO: ICToken(_wrapped).exchangeRateCurrent();
+    function exchangeRate(address _wrapped) external view override returns (uint256) {
+        return this.exchangeRateView(_wrapped);
     }
 
     function exchangeRateView(address _wrapped) external view override returns (uint256) {
-        return 0; // TODO: ICToken(_wrapped).exchangeRateStored();
+        return IYToken(_wrapped).pricePerShare();
     }
 }
