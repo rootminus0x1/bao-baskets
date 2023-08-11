@@ -12,7 +12,9 @@ import {LendingLogicCompound} from "contracts/Strategies/LendingLogicCompound.so
 import {Deployed, ChainState, ChainStateLending} from "./Deployed.sol";
 import {TestLendingLogic} from "./TestLendingLogic.sol";
 import {TestData} from "./TestData.t.sol";
-import {Dai} from "./Dai.t.sol";
+
+// TODO: add CUSDC - this will have to be added to the lending registry as well (like yearn is done)
+// TODO: add AAVE lending logic
 
 contract TestLendingRegistry is ChainStateLending, TestData {
     function test_LendingRegistryBasics() public {
