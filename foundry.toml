@@ -2,3 +2,4 @@
 optimizer = true
 optimizer_runs = 100000
 gas_reports = ["*"]
+gas_limit = "18446744073709551615" # u64::MAX i.e. highest
