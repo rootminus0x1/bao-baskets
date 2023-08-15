@@ -3,7 +3,7 @@ pragma experimental ABIEncoderV2;
 pragma solidity ^0.7.1;
 //pragma solidity ^0.8.19;
 
-import {DateUtils} from "./SkeletonCodeworks/DateUtils/DateUtils.sol";
+import {DateUtils} from "DateUtils/DateUtils.sol";
 import {console2 as console} from "forge-std/console2.sol";
 
 // Attribution: string basics stolen from OpenZeppelin

@@ -5,7 +5,7 @@ pragma solidity ^0.7.1;
 import {LoggingTest} from "./LoggingTest.sol";
 
 import {Useful} from "./Useful.sol";
-import {DateUtils} from "./SkeletonCodeworks/DateUtils/DateUtils.sol";
+import {DateUtils} from "DateUtils/DateUtils.sol";
 
 contract TestUsefulSimples is LoggingTest {
     bytes zeroA = new bytes(0);

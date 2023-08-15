@@ -5,7 +5,7 @@ pragma solidity ^0.7.1;
 import {Test} from "forge-std/Test.sol";
 import {console2 as console} from "forge-std/console2.sol";
 
-import {DateUtils} from "./SkeletonCodeworks/DateUtils/DateUtils.sol";
+import {DateUtils} from "DateUtils/DateUtils.sol";
 import {LoggingTest} from "./LoggingTest.sol";
 import {ChainState} from "./ChainState.sol";
 

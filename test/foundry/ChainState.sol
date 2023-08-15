@@ -6,7 +6,7 @@ import {console2 as console} from "forge-std/console2.sol";
 import {Test, Vm} from "forge-std/Test.sol";
 
 import {LoggingTest} from "./LoggingTest.sol";
-import {DateUtils} from "./SkeletonCodeworks/DateUtils/DateUtils.sol";
+import {DateUtils} from "DateUtils/DateUtils.sol";
 import {Useful} from "./Useful.sol";
 
 contract ChainFork is Test {

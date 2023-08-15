@@ -14,7 +14,7 @@ import {LendingRegistry} from "contracts/LendingRegistry.sol";
 import {LendingLogicYearn} from "contracts/Strategies/LendingLogicYearn.sol";
 import {ILendingLogic} from "contracts/Interfaces/ILendingLogic.sol";
 
-import {DateUtils} from "./SkeletonCodeworks/DateUtils/DateUtils.sol";
+import {DateUtils} from "DateUtils/DateUtils.sol";
 
 import {Useful} from "./Useful.sol";
 import {ChainState, Roller} from "./ChainState.sol";

@@ -6,7 +6,7 @@ import {console2 as console} from "forge-std/console2.sol";
 import {Test} from "forge-std/Test.sol";
 
 import {Useful} from "./Useful.sol";
-import {DateUtils} from "./SkeletonCodeworks/DateUtils/DateUtils.sol";
+import {DateUtils} from "DateUtils/DateUtils.sol";
 
 interface ILog {
     function log(string memory message) external;
