@@ -4,7 +4,7 @@ pragma experimental ABIEncoderV2;
 import "forge-std/Test.sol";
 import "./LendingLogic.t.sol";
 import "@openzeppelin/token/ERC20/ERC20.sol";
-import "../../Interfaces/IXSushi.sol";
+import "src/Interfaces/IXSushi.sol";
 
 contract SushiStakingStrategyTest is Test, LendingLogicTest {
 

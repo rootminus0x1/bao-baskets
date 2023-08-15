@@ -3,7 +3,7 @@ pragma solidity ^0.7.0;
 pragma experimental ABIEncoderV2;
 
 import "forge-std/Test.sol";
-import "../../Recipes/Recipe.sol";
+import "src/Recipes/Recipe.sol";
 import "../BasketsTestSuite.sol";
 import "./RecipeConfiguration.sol";
 

@@ -3,7 +3,7 @@ pragma solidity ^0.7.0;
 pragma experimental ABIEncoderV2;
 
 import "forge-std/Test.sol";
-import "../../Interfaces/IRecipe.sol";
+import "src/Interfaces/IRecipe.sol";
 import {Cheats} from "../BasketsTestSuite.sol";
 
 contract RecipeConfigurator is Test {
