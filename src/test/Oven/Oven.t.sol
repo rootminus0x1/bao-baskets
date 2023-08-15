@@ -1,5 +1,7 @@
 pragma solidity ^0.7.0;
 
+pragma experimental ABIEncoderV2;
+
 import "forge-std/Test.sol";
 import "../../Recipes/Recipe.sol";
 import "../BasketsTestSuite.sol";
@@ -47,10 +49,13 @@ contract OvenTest is Test {
         address[] memory receivers = new address[](1);
         receivers[0] = address(testSuite);
         uint initialBalance = basket.balanceOf(address(testSuite));
-
+        console.log("got balanceOf");
         oven.bake(receivers, 1e18, mintPrice);
+        console.log("baked");
 
         oven.withdrawOutput(address(testSuite));
+        console.log("withdrawn output");
+
         assertEq(basket.balanceOf(address(testSuite)), initialBalance + 1e18);
     }
 }

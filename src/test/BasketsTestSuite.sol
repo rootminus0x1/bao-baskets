@@ -97,6 +97,13 @@ contract BasketsTestSuite is Test {
     bytes32 public COMP_PROTOCOL = 0x0000000000000000000000000000000000000000000000000000000000000001;
 
     constructor () {
+        string memory url = vm.envString("MAINNET_RPC_URL");
+        // console.log("MAINNET_RPC_URL=%s", url);
+        uint256 fork = vm.createFork(url);
+        vm.selectFork(fork);
+        vm.rollFork(14860640); // 2022-05-28-2022 01:52:39
+                               // 16811930, 2023-03-12 12:25:11
+
         // Give our test suite some ETH
         cheats = Cheats(0x7109709ECfa91a80626fF3989D68f67F5b1DD12D);
         cheats.deal(address(this), 1000 ether);
