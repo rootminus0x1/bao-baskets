@@ -38,7 +38,7 @@ contract TestCompoundDai is TestLendingLogic {
             Deployed.CDAI,
             Deployed.DAI,
             22280000775866001,
-            223050726302909685359821630
+            22305072630290969
         );
     }
 
@@ -56,7 +56,7 @@ contract TestCompoundComp is TestLendingLogic {
             Deployed.CCOMP,
             Deployed.COMP,
             19822320235702758,
-            204579089505601083101843661
+            20457908950560109
         );
     }
 }
@@ -69,7 +69,29 @@ contract TestCompoundAave is TestLendingLogic {
             Deployed.CAAVE,
             Deployed.AAVE,
             443497473591241,
-            206253078001934786258575925
+            20625307800193479
         );
+    }
+}
+
+// add this in as a test of decimals - cUSDC has 8 and USDC has 6!!!!
+contract TestCompoundUSDC is TestLendingLogic {
+    constructor() {
+        TestLendingLogic.initialise(
+            Deployed.LENDINGLOGICCOMPOUND,
+            Deployed.PROTOCOLCOMPOUND,
+            Deployed.CUSDC,
+            Deployed.USDC,
+            23165637618350606,
+            23000 // 2.3 cents (in USDC 6 decimals)
+        );
+
+        vm.startPrank(Deployed.OWNER);
+        // set up the lending registry
+        lendingRegistry.setWrappedToProtocol(Deployed.CUSDC, Deployed.PROTOCOLCOMPOUND);
+        lendingRegistry.setWrappedToUnderlying(Deployed.CUSDC, Deployed.USDC);
+        // lendingRegistry.setProtocolToLogic(Deployed.PROTOCOLCOMPOUND, Deployed.LENDINGLOGICCOMPOUND;
+        lendingRegistry.setUnderlyingToProtocolWrapped(Deployed.USDC, Deployed.PROTOCOLCOMPOUND, Deployed.CUSDC);
+        vm.stopPrank();
     }
 }

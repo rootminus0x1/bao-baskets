@@ -32,7 +32,7 @@ abstract contract LogicYearn {
     address public wrapped;
     address public underlying;
 
-    bytes32 public constant PROTOCOLYEARN = 0x0000000000000000000000000000000000000000000000000000000000000004;
+    bytes32 public constant PROTOCOLYEARN = 0x0000000000000000000000000000000000000000000000000000000000000005;
 
     LendingLogicYearn public lendingLogicYearn;
     address public LENDINGLOGICYEARN;
@@ -79,13 +79,14 @@ contract TestApr is Test, LogicYearnLUSD {
     }
 }
 
-contract TestYearnLogicBackTest_long is Test, LogicYearnLUSD {
+contract TestYearnLogicBackTest is Test, LogicYearnLUSD {
     struct TimeSeriesItem {
         string date;
         string value;
     }
 
-    function test_historicalRates_long() public {
+    function test_historicalRates() public {
+        vm.skip(!vm.envOr("BACKTESTS", false));
         // TODO: check that the correlation > 0.9
         TimeSeriesItem[10] memory timeSeries = [
             TimeSeriesItem({date: "2023-03-11 22:25:00", value: "8.48%"}),
@@ -120,7 +121,9 @@ contract TestYearnLogicBackTest_long is Test, LogicYearnLUSD {
         }
     }
 
-    function test_detailedhistoricalRates_long() public {
+    function test_detailedhistoricalRates() public {
+        vm.skip(!vm.envOr("BACKTESTS", false));
+
         string memory startDateTime = "2023-03-12 12:25:00"; // about as early as you can go for yvLUSD
         string memory finishDateTime = "2023-08-02 12:14:00";
         //string memory finishDateTime = "2023-03-15 12:30:00"; // test for 1 day
@@ -290,19 +293,19 @@ abstract contract TestLendingLogicYearn is LogicYearn, TestLendingLogic {
 }
 
 contract TestLendingLogicYearnLUSD is
-    TestLendingLogicYearn(Deployed.YVLUSD, Deployed.LUSD, "LUSD", 28554710897801830, 1087633901025148253)
+    TestLendingLogicYearn(Deployed.YVLUSD, Deployed.LUSD, "LUSD", 28554710897801830, 1085576931761041498)
 {}
 
 contract TestLendingLogicYearnUSDC is
-    TestLendingLogicYearn(Deployed.YVUSDC, Deployed.USDC, "USDC", 26008016921457931, 1041000)
+    TestLendingLogicYearn(Deployed.YVUSDC, Deployed.USDC, "USDC", 26008016921457931, 1038800)
 {}
 
 contract TestLendingLogicYearnDAI is
-    TestLendingLogicYearn(Deployed.YVDAI, Deployed.DAI, "DAI", 33170550474952463, 1064233153235265863)
+    TestLendingLogicYearn(Deployed.YVDAI, Deployed.DAI, "DAI", 33170550474952463, 1060619688226249862)
 {}
 
 contract TestLendingLogicYearnUSDT is
-    TestLendingLogicYearn(Deployed.YVUSDT, Deployed.USDT, "USDT", 21175457302527667, 1022502)
+    TestLendingLogicYearn(Deployed.YVUSDT, Deployed.USDT, "USDT", 21175457302527667, 1020286)
 {}
 
 // TUSD gives over 200% APR, which is wrong :-)

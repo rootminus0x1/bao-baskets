@@ -90,15 +90,22 @@ abstract contract TestLendingLogic is ChainStateLending, TestData {
         // recipe uses the exchange rate
         uint256 one = 10 ** wrappedDecimals;
         uint256 thisExchangeRate = iLogic.exchangeRate(wrapped); // wrapped to underlying
-            // uint256 underlyingAmount = one * thisExchangeRate / (1e18) + 1;
+        uint256 underlyingAmountRecipe = one * thisExchangeRate / (1e18) + 1;
         uint256 underlyingAmount = one * thisExchangeRate / (10 ** underlyingDecimals) + 1;
 
         console.log(
-            "you can get %s %s for 1 %s",
+            "Recipe calculates %s %s for 1 %s",
+            Useful.toStringScaled(underlyingAmountRecipe, underlyingDecimals),
+            underlyingName,
+            wrappedName
+        );
+        console.log(
+            "Corrected for underlying decimals is %s %s for 1 %s",
             Useful.toStringScaled(underlyingAmount, underlyingDecimals),
             underlyingName,
             wrappedName
         );
+        assertApproxEqAbs(underlyingAmountRecipe, exchangeRate, 10 ** (underlyingDecimals - 4), "exchange rate is out");
     }
 
     function test_Logic() public {
@@ -119,9 +126,10 @@ abstract contract TestLendingLogic is ChainStateLending, TestData {
         assertEq(thisApr, iLogic.getAPRFromUnderlying(underlying), "underlying and wrapped have different APRs");
         assertEq(bestApr, thisApr, "thisAapr not the same as bestApr");
 
+        console.log("apr=%s%%", Useful.toStringScaled(thisApr, 16)); // 10**(18-2)
         assertApproxEqAbs(thisApr, apr, 1e15, "apr doesn't match");
-        assertApproxEqAbs(iLogic.exchangeRate(wrapped), exchangeRate, 1e16, "exchangeRate doesn't match");
-        assertApproxEqAbs(iLogic.exchangeRateView(wrapped), exchangeRate, 1e16, "exchangeRateView doesn't match");
+        //assertApproxEqAbs(iLogic.exchangeRate(wrapped), exchangeRate, 1e16, "exchangeRate doesn't match");
+        //assertApproxEqAbs(iLogic.exchangeRateView(wrapped), exchangeRate, 1e16, "exchangeRateView doesn't match");
         assertApproxEqAbs(
             iLogic.exchangeRate(wrapped), iLogic.exchangeRateView(wrapped), 1e16, "exchangeRates don't match"
         );

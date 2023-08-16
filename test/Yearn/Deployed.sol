@@ -59,7 +59,7 @@ library Deployed {
     address public constant CDAI = 0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643; // 1
     address public constant CCOMP = 0x70e36f6BF80a52b3B46b3aF8e106CC0ed743E8e4; // 1
     address public constant CAAVE = 0xe65cdB6479BaC1e22340E4E755fAE7E509EcD06c; // 1
-    // address public constant CUSDC = 0x39AA39c021dfbaE8faC545936693aC917d5E7563;
+    address public constant CUSDC = 0x39AA39c021dfbaE8faC545936693aC917d5E7563;
 
     // aave
     address public constant AFEI = 0x683923dB55Fead99A79Fa01A27EeC3cB19679cC3; //2
@@ -75,7 +75,7 @@ library Deployed {
     address public constant XSUSHI = 0x8798249c2E607446EfB7Ad49eC89dD1865Ff4272; // 3
 
     // yearn
-    address public constant YVLUSD = 0x378cb52b00F9D0921cb46dFc099CFf73b42419dC; // 4
+    address public constant YVLUSD = 0x378cb52b00F9D0921cb46dFc099CFf73b42419dC; // 5
     // address public constant YVLUSDSTRATEGY1 = 0xFf72f7C5f64ec2fd79B57d1A69C3311C1bB3EEF1;
     address public constant YVUSDC = 0xa354F35829Ae975e850e23e9615b11Da1B3dC4DE;
     address public constant YVDAI = 0xdA816459F1AB5631232FE5e97a05BBBb94970c95;
