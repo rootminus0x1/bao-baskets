@@ -14,7 +14,11 @@ import {TestData} from "./TestData.t.sol";
 contract UnititialisedLendingRegistry is Test, TestData {
     LendingRegistry private lendingRegistry;
 
+    // these events are expected to be emitted from the lending manager
     event WrappedToProtocolSet(address indexed wrapped, bytes32 indexed protocol);
+    event WrappedToUnderlyingSet(address indexed wrapped, address indexed underlying);
+    event ProtocolToLogicSet(bytes32 indexed protocol, address indexed logic);
+    event UnderlyingToProtocolWrappedSet(address indexed underlying, bytes32 indexed protocol, address indexed wrapped);
 
     function setUp() public virtual {
         lendingRegistry = new LendingRegistry();
@@ -34,15 +38,20 @@ contract UnititialisedLendingRegistry is Test, TestData {
 
     function test_Emits() public {
         vm.expectEmit(true, true, false, false);
-        // expected event
-        emit WrappedToProtocolSet(zeroAddress, zeroBytes32);
-        // actual event
-        lendingRegistry.setWrappedToProtocol(zeroAddress, zeroBytes32);
+        emit WrappedToProtocolSet(nonZeroAddress, nonZeroBytes32); // expected
+        lendingRegistry.setWrappedToProtocol(nonZeroAddress, nonZeroBytes32); // actual
 
-        // TODO:
-        // event WrappedToUnderlyingSet(address indexed wrapped, address indexed underlying);
-        // event ProtocolToLogicSet(bytes32 indexed protocol, address indexed logic);
-        // event UnderlyingToProtocolWrappedSet(address indexed underlying, bytes32 indexed protocol, address indexed wrapped);
+        vm.expectEmit(true, true, false, false);
+        emit WrappedToUnderlyingSet(nonZeroAddress, nonZeroAddress2);
+        lendingRegistry.setWrappedToUnderlying(nonZeroAddress, nonZeroAddress2);
+
+        vm.expectEmit(true, true, false, false);
+        emit ProtocolToLogicSet(nonZeroBytes32, nonZeroAddress);
+        lendingRegistry.setProtocolToLogic(nonZeroBytes32, nonZeroAddress);
+
+        vm.expectEmit(true, true, true, false);
+        emit UnderlyingToProtocolWrappedSet(nonZeroAddress, nonZeroBytes32, nonZeroAddress2);
+        lendingRegistry.setUnderlyingToProtocolWrapped(nonZeroAddress, nonZeroBytes32, nonZeroAddress2);
     }
 
     function testFail_CallerIsNotOwner() public {

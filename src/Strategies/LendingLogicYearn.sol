@@ -70,7 +70,6 @@ contract LendingLogicYearn is Ownable, ILendingLogic {
     }
 
     function getAPRFromUnderlying(address underlying) external view override returns (uint256) {
-        // TODO: should the below be done once in the constructor as it's unlikely to change?
         address wrapped = lendingRegistry.underlyingToProtocolWrapped(underlying, protocolKey);
         return getAPRFromWrapped(wrapped);
     }

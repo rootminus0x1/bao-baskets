@@ -86,8 +86,9 @@ contract TestYearnLogicBackTest is Test, LogicYearnLUSD {
     }
 
     function test_historicalRates() public {
+        //console.log("running historical rates test");
         vm.skip(!vm.envOr("BACKTESTS", false));
-        // TODO: check that the correlation > 0.9
+
         TimeSeriesItem[10] memory timeSeries = [
             TimeSeriesItem({date: "2023-03-11 22:25:00", value: "8.48%"}),
             TimeSeriesItem({date: "2023-03-26 23:29:00", value: "7.21%"}),
@@ -102,8 +103,16 @@ contract TestYearnLogicBackTest is Test, LogicYearnLUSD {
         ];
         string memory url = vm.envString("MAINNET_RPC_URL");
         // console.log("MAINNET_RPC_URL=%s", url);
+
+        // TODO: break this pearson correlation out into Useful
+        uint256 n = timeSeries.length;
+        uint256 sumx = 0;
+        uint256 sumy = 0;
+        uint256 sumxy = 0;
+        uint256 sumxx = 0;
+        uint256 sumyy = 0;
         console.log("Date, Yearn, Bao");
-        for (uint256 i = 0; i < timeSeries.length; i++) {
+        for (uint256 i = 0; i < n; i++) {
             uint256 fork = vm.createFork(url);
             vm.selectFork(fork);
 
@@ -111,6 +120,7 @@ contract TestYearnLogicBackTest is Test, LogicYearnLUSD {
             Roller.rollForkBefore(vm, dt + 60 * 60); // add an hour
 
             createLogic();
+
             uint256 apr = lendingLogicYearn.getAPRFromWrapped(wrapped);
             console.log(
                 "%s, %s, %s%%",
@@ -118,7 +128,22 @@ contract TestYearnLogicBackTest is Test, LogicYearnLUSD {
                 timeSeries[i].value,
                 Useful.toStringScaled(apr, 18 - 2)
             );
+            uint256 x = apr;
+            uint256 y = Useful.toUint256(timeSeries[i].value, 18);
+            sumx += x;
+            sumy += y;
+            sumxy += x * y;
+            sumxx += x * x;
+            sumyy += y * y;
         }
+        // r = n * (sum(x*y)) - (sum(x) * sum(y))
+        //     ------------------------------------
+        //     sqrt((n * sum(x*x) - sum(x)**2)) * sqrt((n * sum(x*x) - sum(y)**2))
+        uint256 numer = n * sumxy - sumx * sumy;
+        uint256 denom = Useful.sqrt(n * sumxx - sumx * sumx) * Useful.sqrt(n * sumyy - sumy * sumy);
+        uint256 correlation = numer * 1e18 / denom;
+        console.log("correlation=%s", Useful.toStringScaled(correlation, 18));
+        assertGt(correlation, 9 * 1e17, "good correlation");
     }
 
     function test_detailedhistoricalRates() public {

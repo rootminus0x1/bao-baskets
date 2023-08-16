@@ -11,6 +11,17 @@ import {console2 as console} from "forge-std/console2.sol";
 library Useful {
     bytes16 private constant _SYMBOLS = "0123456789abcdef";
 
+    // the below is borrowed from https://github.com/ethereum/dapp-bin/pull/50
+    // it will be returned when its implemented :-)
+    function sqrt(uint256 x) public pure returns (uint256 y) {
+        uint256 z = (x + 1) / 2;
+        y = x;
+        while (z < y) {
+            y = z;
+            z = (x / z + z) / 2;
+        }
+    }
+
     function memEq(bytes memory a, bytes memory b) internal pure returns (bool) {
         return (a.length == b.length) && (keccak256(a) == keccak256(b));
     }
