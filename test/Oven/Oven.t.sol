@@ -40,6 +40,11 @@ contract OvenTest is Test {
     }
 
     function testOvenBake() public {
+        // skip this test because we don't use Recipe. Use SimpleUniRecipe instead
+        // SimpleUniRecipe has no getPricePie function so it wont work with it anyway
+        // TODO: have a OvenTest that works with SimpleUniRecipe
+        vm.skip(true);
+
         (uint256 mintPrice, uint16[] memory dexIndex) = recipe.getPricePie(testSuite.bSTBL(), 1e18);
 
         oven.deposit{value : mintPrice}();
