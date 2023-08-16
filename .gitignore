@@ -16,9 +16,11 @@ coverage
 coverage.json
 typechain
 
-# Forge files
+# Foundry files
 out/
 cache/
+bin/
+lcov.info
 
 #Hardhat files
 cache
@@ -38,6 +40,7 @@ lib-cov
 
 # Coverage directory used by tools like istanbul
 coverage
+coverage.json
 *.lcov
 
 # nyc test coverage
@@ -59,10 +62,10 @@ build/Release
 node_modules/
 jspm_packages/
 
-# TypeScript v1 declaration files
+# TypeScript declaration files, cache
 typings/
-
-# TypeScript cache
+typechain-types/
+typechain/
 *.tsbuildinfo
 
 # Optional npm cache directory
@@ -83,8 +86,15 @@ typings/
 # Output of 'npm pack'
 *.tgz
 
-# Yarn Integrity file
+# Yarn - as per https://yarnpkg.com/getting-started/qa (not using zero-installs)
 .yarn-integrity
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
 
 # dotenv environment variables file
 .env
