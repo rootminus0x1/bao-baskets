@@ -9,20 +9,17 @@ import {LendingRegistry} from "src/LendingRegistry.sol";
 
 import {ChainState} from "./ChainState.sol";
 
-//import {Dai} from "./Dai.t.sol";
-
 library Deployed {
-    // Dai maker
-    // address public constant DAIOWNER = 0xdDb108893104dE4E1C6d0E47c42237dB4E617ACc;
+    // deployed addresses for BAO lending
+    address public constant OWNERBSTBL = 0xFC69e0a5823E2AfCBEb8a35d33588360F1496a00;
+    address public constant OWNERFACTORY = 0xab0C9BC6bcBaad9391C530f33f9294DEc38ae189;
 
-    // deployed addresses for BAO
-    address public constant OWNER = 0xFC69e0a5823E2AfCBEb8a35d33588360F1496a00;
     // Recipe https://etherscan.io/address/0xac0fE9F363c160c281c81DdC49d0AA8cE04C02Eb
     address public constant RECIPE = 0xac0fE9F363c160c281c81DdC49d0AA8cE04C02Eb;
     // Basket Registry https://etherscan.io/address/0x51801401e1f21c9184610b99B978D050a374566E
     address public constant BASKETREGISTRY = 0x51801401e1f21c9184610b99B978D050a374566E;
     // Lending Registry https://etherscan.io/address/0x08a2b7D713e388123dc6678168656659d297d397
-    address public constant LENDINGREGISTRY = 0x08a2b7D713e388123dc6678168656659d297d397;
+    address public constant LENDINGREGISTRYBSTBL = 0x08a2b7D713e388123dc6678168656659d297d397;
     // Basket Factory https://etherscan.io/address/0xe1e7634Cd2AED55C6aAA704299E735987f372b70
     address public constant BASKETFACTORY = 0xe1e7634Cd2AED55C6aAA704299E735987f372b70;
     // AAVELendingStrategy	https://etherscan.io/address/0xD67730986FC37d55eCF5cCA0d2D854f4FCf5d876
@@ -30,9 +27,10 @@ library Deployed {
     // CompoundLendingStrategy https://etherscan.io/address/0x5822D781503676b6a927eA841039465193CA213a
     address public constant LENDINGLOGICCOMPOUND = 0x5822D781503676b6a927eA841039465193CA213a;
     // bSTBL https://etherscan.io/address/0x5ee08f40b637417bcC9d2C51B62F4820ec9cF5D8
-    address public constant BSTBL = 0x5ee08f40b637417bcC9d2C51B62F4820ec9cF5D8;
+    address public constant BASKETBSTBL = 0x5ee08f40b637417bcC9d2C51B62F4820ec9cF5D8;
     // bSTBL LendingManager https://etherscan.io/address/0x5C0AfEf620f512e2FA65C765A72fa46f9A41C6BD
-    address public constant BSTBLLENDINGMANAGER = 0x5C0AfEf620f512e2FA65C765A72fa46f9A41C6BD;
+    address public constant LENDINGMANAGERBSTBL = 0x5C0AfEf620f512e2FA65C765A72fa46f9A41C6BD;
+
     // protocols
     bytes32 public constant PROTOCOLCOMPOUND = 0x0000000000000000000000000000000000000000000000000000000000000001;
     bytes32 public constant PROTOCOLAAVE = 0x0000000000000000000000000000000000000000000000000000000000000002;
@@ -90,6 +88,6 @@ contract ChainStateLending is ChainState {
 
     constructor() {
         rollForkTo(Deployed.blockWithCompoundAaveKashi);
-        lendingRegistry = LendingRegistry(Deployed.LENDINGREGISTRY);
+        lendingRegistry = LendingRegistry(Deployed.LENDINGREGISTRYBSTBL);
     }
 }

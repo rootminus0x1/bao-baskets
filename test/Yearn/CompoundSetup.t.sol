@@ -17,7 +17,7 @@ import {TestData} from "./TestData.t.sol";
 
 contract TestLendingRegistry is ChainStateLending, TestData {
     function test_LendingRegistryBasics() public {
-        assertEq(lendingRegistry.owner(), Deployed.OWNER);
+        assertEq(lendingRegistry.owner(), Deployed.OWNERBSTBL);
 
         uint256 bestApr;
         bytes32 bestProtocol;
@@ -85,7 +85,7 @@ contract TestCompoundUSDC is TestLendingLogic {
             23000 // 2.3 cents (in USDC 6 decimals)
         );
 
-        vm.startPrank(Deployed.OWNER);
+        vm.startPrank(Deployed.OWNERBSTBL);
         // set up the lending registry
         lendingRegistry.setWrappedToProtocol(Deployed.CUSDC, Deployed.PROTOCOLCOMPOUND);
         lendingRegistry.setWrappedToUnderlying(Deployed.CUSDC, Deployed.USDC);

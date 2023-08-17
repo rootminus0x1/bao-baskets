@@ -44,10 +44,10 @@ abstract contract LogicYearn {
 
     // createLogic is a separate function, and not in the constructor, to allow it to be executed after rolling a fork to a given block
     function createLogic() public {
-        lendingLogicYearn = new LendingLogicYearn(Deployed.LENDINGREGISTRY, PROTOCOLYEARN);
+        lendingLogicYearn = new LendingLogicYearn(Deployed.LENDINGREGISTRYBSTBL, PROTOCOLYEARN);
         LENDINGLOGICYEARN = address(lendingLogicYearn);
 
-        lendingLogicYearn.transferOwnership(Deployed.OWNER);
+        lendingLogicYearn.transferOwnership(Deployed.OWNERBSTBL);
     }
 }
 
@@ -212,7 +212,7 @@ abstract contract TestLendingLogicYearn is LogicYearn, TestLendingLogic {
 
         expectedApr = _apr;
 
-        vm.startPrank(Deployed.OWNER);
+        vm.startPrank(Deployed.OWNERBSTBL);
         // set up the lending registry
         lendingRegistry.setWrappedToProtocol(wrapped, PROTOCOLYEARN);
         lendingRegistry.setWrappedToUnderlying(wrapped, underlying);
