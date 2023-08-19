@@ -2,7 +2,6 @@
 pragma experimental ABIEncoderV2;
 pragma solidity ^0.7.1;
 
-import "@openzeppelin/access/Ownable.sol";
 import "@openzeppelin/math/SafeMath.sol";
 import "@openzeppelin/token/ERC20/IERC20.sol";
 import "../Interfaces/IEIP20.sol";
@@ -10,7 +9,7 @@ import "../Interfaces/ILendingLogic.sol";
 import "../Interfaces/IYToken.sol";
 import "../LendingRegistry.sol";
 
-contract LendingLogicYearn is Ownable, ILendingLogic {
+contract LendingLogicYearn is ILendingLogic {
     using SafeMath for uint256;
 
     LendingRegistry public lendingRegistry;
@@ -122,7 +121,7 @@ contract LendingLogicYearn is Ownable, ILendingLogic {
     function exchangeRateView(address _wrapped) external view override returns (uint256) {
         // price per share is scaled according to the decimals of the underlying
         // but the recipe needs it scaled as if it had 18 decimals
-        // therefore we scale
+        // therefore we rescale
         address underlying = lendingRegistry.wrappedToUnderlying(_wrapped);
         return IYToken(_wrapped).pricePerShare() * 10 ** (18 - IEIP20(underlying).decimals());
     }

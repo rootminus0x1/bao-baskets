@@ -1,5 +1,14 @@
 [profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
 optimizer = true
 optimizer_runs = 100000
 gas_reports = ["*"]
 gas_limit = "18446744073709551615" # u64::MAX i.e. highest
+
+[rpc_endpoints]
+sepolia = "${SEPOLIA_RPC_URL}"
+
+[etherscan]
+sepolia = { key = "${ETHERSCAN_API_KEY}" }

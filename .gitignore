@@ -21,6 +21,7 @@ out/
 cache/
 bin/
 lcov.info
+broadcast/
 
 #Hardhat files
 cache

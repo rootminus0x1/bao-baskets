@@ -11,7 +11,7 @@ import {ChainState} from "./ChainState.sol";
 
 library Deployed {
     // deployed addresses for BAO lending
-    address public constant OWNERBSTBL = 0xFC69e0a5823E2AfCBEb8a35d33588360F1496a00;
+    address public constant BAOMULTISIG = 0xFC69e0a5823E2AfCBEb8a35d33588360F1496a00;
     address public constant OWNERFACTORY = 0xab0C9BC6bcBaad9391C530f33f9294DEc38ae189;
 
     // Recipe https://etherscan.io/address/0xac0fE9F363c160c281c81DdC49d0AA8cE04C02Eb
@@ -19,7 +19,7 @@ library Deployed {
     // Basket Registry https://etherscan.io/address/0x51801401e1f21c9184610b99B978D050a374566E
     address public constant BASKETREGISTRY = 0x51801401e1f21c9184610b99B978D050a374566E;
     // Lending Registry https://etherscan.io/address/0x08a2b7D713e388123dc6678168656659d297d397
-    address public constant LENDINGREGISTRYBSTBL = 0x08a2b7D713e388123dc6678168656659d297d397;
+    address public constant LENDINGREGISTRY = 0x08a2b7D713e388123dc6678168656659d297d397;
     // Basket Factory https://etherscan.io/address/0xe1e7634Cd2AED55C6aAA704299E735987f372b70
     address public constant BASKETFACTORY = 0xe1e7634Cd2AED55C6aAA704299E735987f372b70;
     // AAVELendingStrategy	https://etherscan.io/address/0xD67730986FC37d55eCF5cCA0d2D854f4FCf5d876
@@ -73,7 +73,7 @@ library Deployed {
     address public constant XSUSHI = 0x8798249c2E607446EfB7Ad49eC89dD1865Ff4272; // 3
 
     // yearn
-    address public constant YVLUSD = 0x378cb52b00F9D0921cb46dFc099CFf73b42419dC; // 5
+    address public constant YVLUSD = 0x378cb52b00F9D0921cb46dFc099CFf73b42419dC; // 4
     // address public constant YVLUSDSTRATEGY1 = 0xFf72f7C5f64ec2fd79B57d1A69C3311C1bB3EEF1;
     address public constant YVUSDC = 0xa354F35829Ae975e850e23e9615b11Da1B3dC4DE;
     address public constant YVDAI = 0xdA816459F1AB5631232FE5e97a05BBBb94970c95;
@@ -88,6 +88,6 @@ contract ChainStateLending is ChainState {
 
     constructor() {
         rollForkTo(Deployed.blockWithCompoundAaveKashi);
-        lendingRegistry = LendingRegistry(Deployed.LENDINGREGISTRYBSTBL);
+        lendingRegistry = LendingRegistry(Deployed.LENDINGREGISTRY);
     }
 }
