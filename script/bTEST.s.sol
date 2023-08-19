@@ -29,6 +29,19 @@ contract BTESTYearnLUSDConstants {
     bytes32 internal constant protocol = 0x0000000000000000000000000000000000000000000000000000000000000004;
 }
 
+contract LendingLogicYearnScript is Script, BTESTYearnLUSDConstants {
+    function run() external {
+        uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
+        vm.startBroadcast(deployerPrivateKey);
+
+        LendingLogicYearn strategy = new LendingLogicYearn(LENDINGREGISTRY, protocol);
+
+        vm.stopBroadcast();
+
+        // console.log("LendingLogivYearn deployed at %s", address(strategy));
+    }
+}
+
 contract BTESTScript is Script, BTESTYearnLUSDConstants {
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
@@ -50,19 +63,6 @@ contract BTESTScript is Script, BTESTYearnLUSDConstants {
         // make a basket
         factory.bakeBasket(tokens, amounts, amount, symbol, name);
         vm.stopBroadcast();
-    }
-}
-
-contract LendingLogicYearnScript is Script, BTESTYearnLUSDConstants {
-    function run() external {
-        uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
-        vm.startBroadcast(deployerPrivateKey);
-
-        LendingLogicYearn strategy = new LendingLogicYearn(LENDINGREGISTRY, protocol);
-
-        vm.stopBroadcast();
-
-        // console.log("LendingLogivYearn deployed at %s", address(strategy));
     }
 }
 
