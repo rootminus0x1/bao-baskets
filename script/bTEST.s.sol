@@ -29,6 +29,10 @@ contract BTESTYearnLUSDConstants {
     bytes32 internal constant protocol = 0x0000000000000000000000000000000000000000000000000000000000000004;
 }
 
+/* 
+deploy the lending logic yearn
+$ forge script script/bTEST.s.sol:LendingLogicYearnScript --fork-url $MAINNET_RPC_URL --broadcast --slow --verify
+*/
 contract LendingLogicYearnScript is Script, BTESTYearnLUSDConstants {
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
@@ -42,6 +46,10 @@ contract LendingLogicYearnScript is Script, BTESTYearnLUSDConstants {
     }
 }
 
+/* 
+bake the basket (no verify as it's a transaction not a create)
+$ forge script script/bTEST.s.sol:BTESTScript --fork-url $MAINNET_RPC_URL --broadcast --slow
+*/
 contract BTESTScript is Script, BTESTYearnLUSDConstants {
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
@@ -66,14 +74,12 @@ contract BTESTScript is Script, BTESTYearnLUSDConstants {
     }
 }
 
+/* 
+deploy the lending manager
+$ forge script script/bTEST.s.sol:BTESTLendingManagerScript --sig "run(address basket)" "0x343B1dd3a83823Fa0268537030D90996572E743D" --rpc-url $MAINNET_RPC_URL --broadcast --slow --verify
+*/
 contract BTESTLendingManagerScript is Script, BTESTYearnLUSDConstants {
-    address internal basket;
-
-    constructor(address _basket) {
-        basket = _basket;
-    }
-
-    function run() external {
+    function run(address basket) external {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         vm.startBroadcast(deployerPrivateKey);
 
@@ -86,21 +92,13 @@ contract BTESTLendingManagerScript is Script, BTESTYearnLUSDConstants {
     }
 }
 
+/* 
+transactions for the multisig - results in broadcast/bTEST.s.sol/1/dry-run/run-latest.json
+$ forge script script/bTEST.s.sol:BTESTYearnLUSDmultisig --sig "run(address basket, address strategy, address manager)" "0x343B1dd3a83823Fa0268537030D90996572E743D" "0x9F3Fe9eba4DFc393F03Da5d0e18aFEe78a5f87E6" "0xEe7EB3da580c583F039972D2A13394e367bE72D8" --rpc-url $MAINNET_RPC_URL
+*/
 contract BTESTYearnLUSDmultisig is Script, BTESTYearnLUSDConstants {
-    address internal basket;
-    address internal strategy;
-    address internal manager;
-
-    constructor(address _basket, address _strategy, address _manager) {
-        basket = _basket;
-        strategy = _strategy;
-        manager = _manager;
-    }
-
-    function run() external {
-        uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
-        vm.startBroadcast(deployerPrivateKey);
-
+    function run(address basket, address strategy, address manager) external {
+        vm.startBroadcast(BAOMULTISIG);
         // add the basket to the basket registry
         BasketRegistry basketRegistry = BasketRegistry(BASKETREGISTRY);
         basketRegistry.addBasket(basket);
@@ -116,7 +114,6 @@ contract BTESTYearnLUSDmultisig is Script, BTESTYearnLUSDConstants {
 
         // set up this as a caller of lend/unlend, etc.
         IExperiPie(basket).addCaller(address(manager));
-
         vm.stopBroadcast();
     }
 }
