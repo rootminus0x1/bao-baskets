@@ -31,7 +31,9 @@ AAVE v3  						| 0x0000000000000000000000000000000000000000000000000000000000000
 # Developer notes
 
 install foundry as per [link](https://book.getfoundry.sh/)
+
 $ forge install
+
 $ forge test
 
 note that you will need to have your envronment set up for all the tests to work
