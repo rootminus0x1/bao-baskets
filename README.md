@@ -4,7 +4,7 @@
 
 # Deployed Addresses
 
-Contract  	  					| Address (linked to ETherscan)									|
+Contract  	  					| Address (link to Etherscan)									|
 --------------------------------| --------------------------------------------------------------|
 Recipe	  				        | [0xac0fE9F363c160c281c81DdC49d0AA8cE04C02Eb](https://etherscan.io/address/0xac0fE9F363c160c281c81DdC49d0AA8cE04C02Eb)|
 Basket Registry  				| [0x51801401e1f21c9184610b99B978D050a374566E](https://etherscan.io/address/0x51801401e1f21c9184610b99B978D050a374566E)|
@@ -30,11 +30,9 @@ AAVE v3  						| 0x0000000000000000000000000000000000000000000000000000000000000
 
 # Developer notes
 
-install foundry as per [the foundry book](https://book.getfoundry.sh/)  
-    $ forge install  
-    $ forge test  
-
-note that you will need to have your envronment set up for all the tests to work
-
-
-
+Install foundry as per [the foundry book](https://book.getfoundry.sh/) then
+```
+$ forge install
+$ forge test
+```
+Note that you will need to have your envronment (perhaps in your own `.env` file) set up for all the tests to work.
