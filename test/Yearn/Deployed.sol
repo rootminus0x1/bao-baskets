@@ -72,6 +72,12 @@ library Deployed {
     address public constant ADAI = 0x028171bCA77440897B824Ca71D1c56caC55b68A3; // 2
     address public constant ASUSD = 0x6C5024Cd4F8A59110119C56f8933403A539555EB; // 2
 
+    // from https://github.com/aave/aave-address-book/blob/main/src/AaveV3Ethereum.sol
+    address public constant AETHUSDC = 0x98C23E9d8f34FEFb1B7BD6a91B7FF122F4e16F5c; // 2
+    address public constant AETHFRAX = 0xd4e245848d6E1220DBE62e155d89fa327E43CB06; // 2
+    address public constant AETHCRV = 0x7B95Ec873268a6BFC6427e7a28e396Db9D0ebc65; // 2
+    address public constant AETHDAI = 0x018008bfb33d285247A21d44E50697654f754e63;
+
     // TODO: install these addresses from the source as per https://github.com/aave/aave-address-book/tree/main
     // from https://github.com/aave/aave-address-book/blob/main/src/AaveV2Ethereum.sol
     address public constant AAVELENDINGPOOLV2 = 0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9;

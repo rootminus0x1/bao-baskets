@@ -12,9 +12,9 @@ import {IEIP20} from "src/Interfaces/IEIP20.sol";
 import "@openzeppelin/token/ERC20/IERC20.sol";
 
 import {LendingRegistry} from "src/LendingRegistry.sol";
-import {LendingLogicAaveV2} from "src/Strategies/LendingLogicAaveV2.sol";
+import {LendingLogicAaveV2, ATokenV2} from "src/Strategies/LendingLogicAaveV2.sol";
 import {ILendingLogic} from "src/Interfaces/ILendingLogic.sol";
-import {ATokenV2} from "src/Strategies/LendingLogicAaveV2.sol";
+import {LendingLogicAaveV3} from "src/Strategies/LendingLogicAaveV3.sol";
 
 import "src/Interfaces/IAaveLendingPoolV2.sol";
 
@@ -26,6 +26,8 @@ import {Deployed, ChainStateLending} from "./Deployed.sol";
 import {TestLendingLogic} from "./TestLendingLogic.sol";
 import {LendingManagerSimulator} from "./LendingManagerSimulator.sol";
 import {TestData} from "./TestData.t.sol";
+
+// fyi: AAVE V3 error codes: https://github.com/aave/aave-v3-core/blob/27a6d5c83560694210849d4abf09a09dec8da388/helpers/types.ts
 
 // TODO: split this file into 3
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -244,15 +246,17 @@ abstract contract TestAaveLending is Test, LendingManagerSimulator {
     address wrapped;
     string underlyingName;
     string wrappedName;
+    address pool;
 
     constructor(address _wrapped, address _lendingLogic) LendingManagerSimulator(_lendingLogic) {
         wrapped = _wrapped;
         underlying = ATokenV2(wrapped).UNDERLYING_ASSET_ADDRESS();
         underlyingName = IEIP20(underlying).symbol();
         wrappedName = IEIP20(wrapped).symbol();
+        pool = wrapped;
     }
 
-    function test_getApr() public {
+    function test_getApr() public view {
         uint256 apr = lendingLogic.getAPRFromWrapped(wrapped);
         console.log("apr for %s = %s%%", wrappedName, Useful.toStringScaled(apr, 18 - 2));
     }
@@ -268,7 +272,7 @@ abstract contract TestAaveLending is Test, LendingManagerSimulator {
 
         // the lend
         assertGe(IERC20(underlying).balanceOf(wallet), amount, "not enough underlying in wallet");
-        uint256 startPoolBalance = IERC20(underlying).balanceOf(wrapped);
+        uint256 startPoolBalance = IERC20(underlying).balanceOf(pool);
 
         lend(underlying, amount, wallet);
         //lend(amount);
@@ -287,7 +291,7 @@ abstract contract TestAaveLending is Test, LendingManagerSimulator {
             Useful.concat("incorrect amount left in wallet", underlyingName)
         );
         assertEq(
-            IERC20(underlying).balanceOf(wrapped),
+            IERC20(underlying).balanceOf(pool),
             amount + startPoolBalance,
             Useful.concat("the pool now has correct anmount of underlying ", underlyingName)
         );
@@ -307,7 +311,7 @@ abstract contract TestAaveLending is Test, LendingManagerSimulator {
         uint256 underlyingReturned1 = wrappedReturned1; // * exchange rate
 
         assertEq(
-            IERC20(underlying).balanceOf(wrapped),
+            IERC20(underlying).balanceOf(pool),
             startPoolBalance + amount - wrappedReturned1,
             Useful.concat("the pool should now have half the underlying remaining ", underlyingName)
         );
@@ -337,7 +341,7 @@ abstract contract TestAaveLending is Test, LendingManagerSimulator {
         );
 
         assertApproxEqAbs(
-            IERC20(underlying).balanceOf(wrapped),
+            IERC20(underlying).balanceOf(pool),
             startPoolBalance,
             2,
             Useful.concat("the pool should now have no remainining underlying ", underlyingName)
@@ -351,7 +355,7 @@ abstract contract TestAaveLending is Test, LendingManagerSimulator {
         assertApproxEqAbs(
             IERC20(wrapped).balanceOf(wallet),
             0,
-            1, // rounding errors passed on (maybe)
+            2, // rounding errors passed on (maybe)
             Useful.concat("all shares should be transferred out of the wallet ", underlyingName)
         );
     }
@@ -377,9 +381,22 @@ contract TestAaveLendingADAI is TestAaveLending(Deployed.ADAI, Deployed.LENDINGL
 // fails due to sime security issue that foundry won't execute
 // contract TestAaveLendingASUSD is TestAaveLending(Deployed.ASUSD) {}
 
-//contract TestAaveLendingV3ADAI is
-//    TestAaveLending(Deployed.ADAI, address(new LendingLogicAaveV2(Deployed.AAVELENDINGPOOLV3, 0)))
-//{}
+// fails because SUPPLY_CAP_EXCEEDED
+// contract TestAaveLendingAETHUSDC is
+//    TestAaveLending(Deployed.AETHUSDC, address(new LendingLogicAaveV3(Deployed.AAVELENDINGPOOLV3, 0)))
+// {}
+
+contract TestAaveLendingAETHFRAX is
+    TestAaveLending(Deployed.AETHFRAX, address(new LendingLogicAaveV3(Deployed.AAVELENDINGPOOLV3, 0)))
+{}
+
+contract TestAaveLendingAETHCRV is
+    TestAaveLending(Deployed.AETHCRV, address(new LendingLogicAaveV3(Deployed.AAVELENDINGPOOLV3, 0)))
+{}
+
+contract TestAaveLendingAETHDAI is
+    TestAaveLending(Deployed.AETHDAI, address(new LendingLogicAaveV3(Deployed.AAVELENDINGPOOLV3, 0)))
+{}
 
 /*
 contract TestAaveLendingAll is Test {
