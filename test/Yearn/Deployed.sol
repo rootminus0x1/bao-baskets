@@ -24,6 +24,8 @@ library Deployed {
     address public constant BASKETFACTORY = 0xe1e7634Cd2AED55C6aAA704299E735987f372b70;
     // AAVELendingStrategy	https://etherscan.io/address/0xD67730986FC37d55eCF5cCA0d2D854f4FCf5d876
     address public constant LENDINGLOGICAAVE = 0xD67730986FC37d55eCF5cCA0d2D854f4FCf5d876;
+    // YearnLendingStrategy	https://etherscan.io/address/0x9F3Fe9eba4DFc393F03Da5d0e18aFEe78a5f87E6
+    address public constant LENDINGLOGICYEARN = 0x9F3Fe9eba4DFc393F03Da5d0e18aFEe78a5f87E6;
     // CompoundLendingStrategy https://etherscan.io/address/0x5822D781503676b6a927eA841039465193CA213a
     address public constant LENDINGLOGICCOMPOUND = 0x5822D781503676b6a927eA841039465193CA213a;
     // bSTBL https://etherscan.io/address/0x5ee08f40b637417bcC9d2C51B62F4820ec9cF5D8
@@ -35,6 +37,7 @@ library Deployed {
     bytes32 public constant PROTOCOLCOMPOUND = 0x0000000000000000000000000000000000000000000000000000000000000001;
     bytes32 public constant PROTOCOLAAVE = 0x0000000000000000000000000000000000000000000000000000000000000002;
     bytes32 public constant PROTOCOLKASHI = 0x0000000000000000000000000000000000000000000000000000000000000003;
+    bytes32 public constant PROTOCOLYEARN = 0x0000000000000000000000000000000000000000000000000000000000000004;
 
     // underlyings
     address public constant FEI = 0x956F47F50A910163D8BF957Cf5846D573E7f87CA;
@@ -69,6 +72,12 @@ library Deployed {
     address public constant ADAI = 0x028171bCA77440897B824Ca71D1c56caC55b68A3; // 2
     address public constant ASUSD = 0x6C5024Cd4F8A59110119C56f8933403A539555EB; // 2
 
+    // TODO: install these addresses from the source as per https://github.com/aave/aave-address-book/tree/main
+    // from https://github.com/aave/aave-address-book/blob/main/src/AaveV2Ethereum.sol
+    address public constant AAVELENDINGPOOLV2 = 0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9;
+    // from https://github.com/aave/aave-address-book/blob/main/src/AaveV3Ethereum.sol
+    address public constant AAVELENDINGPOOLV3 = 0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2;
+
     // kashi
     address public constant XSUSHI = 0x8798249c2E607446EfB7Ad49eC89dD1865Ff4272; // 3
 
@@ -81,6 +90,7 @@ library Deployed {
     address public constant YVTUSD = 0xFD0877d9095789cAF24c98F7CCe092fa8E120775;
 
     uint256 public constant blockWithCompoundAaveKashi = 17698530; // Jul-15-2023 11:36:35 AM +UTC
+        //uint256 public constant blockWithCompoundAaveKashi = 14860640;
 }
 
 contract ChainStateLending is ChainState {
