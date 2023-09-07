@@ -398,6 +398,10 @@ contract TestAaveLendingAETHDAI is
     TestAaveLending(Deployed.AETHDAI, address(new LendingLogicAaveV3(Deployed.AAVELENDINGPOOLV3, 0)))
 {}
 
+contract TestAaveLendingAETHLUSD is
+    TestAaveLending(Deployed.AETHLUSD, address(new LendingLogicAaveV3(Deployed.AAVELENDINGPOOLV3, 0)))
+{}
+
 /*
 contract TestAaveLendingAll is Test {
     function test_Aave() public{
