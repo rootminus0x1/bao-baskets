@@ -36,7 +36,7 @@ contract bTESTDeployerTest is ChainState {
         // beats me how that deals with rounding errors as rounding errors are inherent
         // in any kind of non-infinite precision number representation
         // in a real deploy this must be in the wallet :-(
-        BasketFacet basketFacet = new BasketFacet();
+        //BasketFacet basketFacet = new BasketFacet();
         //uint256 MIN_AMOUNT = basketFacet.MIN_AMOUNT();
 
         // get some dosh

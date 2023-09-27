@@ -111,7 +111,7 @@ contract TestYearnLogicBackTest is Test, LogicYearnLUSD {
             vm.selectFork(fork);
 
             uint256 dt = DateUtils.convertDateTimeStringToTimestamp(timeSeries[i].date);
-            Roller.rollForkToBlockContaining(vm, dt + 60 * 60, block.number, block.timestamp); // add an hour
+            Roller.rollForkToBlockContaining(vm, dt + 60 * 60, Roller.UpperBound(block.number, block.timestamp)); // add an hour
 
             createLogic();
 
@@ -161,7 +161,7 @@ contract TestYearnLogicBackTest is Test, LogicYearnLUSD {
             if (i > 0) vm.revertTo(cleanChain);
 
             uint256 dt = DateUtils.convertDateTimeStringToTimestamp(timeSeries[i].date);
-            Roller.rollForkToBlockContaining(vm, dt + 60 * 60, lastBlock, lastTimestamp); // add an hour
+            Roller.rollForkToBlockContaining(vm, dt + 60 * 60, Roller.UpperBound(lastBlock, lastTimestamp)); // add an hour
 
             createLogic();
 
@@ -204,9 +204,9 @@ contract TestYearnLogicBackTest is Test, LogicYearnLUSD {
         vm.selectFork(fork);
         uint256 lastBlock = block.number;
         uint256 lastTimestamp = block.timestamp;
-        Roller.rollForkToBlockContaining(vm, finishTimestamp, lastBlock, lastTimestamp);
+        Roller.rollForkToBlockContaining(vm, finishTimestamp, Roller.UpperBound(lastBlock, lastTimestamp));
         uint256 finishBlock = block.number;
-        Roller.rollForkToBlockContaining(vm, startTimestamp, lastBlock, lastTimestamp);
+        Roller.rollForkToBlockContaining(vm, startTimestamp, Roller.UpperBound(lastBlock, lastTimestamp));
         uint256 startBlock = block.number;
 
         uint256 blocksPerSamplePeriod = (finishBlock - startBlock) / numberOfSamples;

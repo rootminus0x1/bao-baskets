@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: UNLICENSED
+
 pragma solidity ^0.7.0;
 pragma experimental ABIEncoderV2;
 
@@ -6,15 +8,9 @@ import "forge-std/Test.sol";
 
 // TODO: incorporate this in the LogicYearn & LogicCompound tests
 
-contract LendingManagerSimulator {
-    ILendingLogic private lendingLogic;
-
-    constructor(ILendingLogic _lendingLogic) {
-        lendingLogic = _lendingLogic;
-    }
-
-    function lend(address _underlying, uint256 _amount, address _tokenHolder) public {
-        (address[] memory _targets, bytes[] memory _data) = lendingLogic.lend(_underlying, _amount, _tokenHolder);
+library LendingManagerSimulator {
+    function lend(ILendingLogic _lendingLogic, address _underlying, uint256 _amount, address _tokenHolder) public {
+        (address[] memory _targets, bytes[] memory _data) = _lendingLogic.lend(_underlying, _amount, _tokenHolder);
 
         for (uint8 i; i < _targets.length; i++) {
             (bool _success,) = _targets[i].call{value: 0}(_data[i]);
@@ -22,8 +18,8 @@ contract LendingManagerSimulator {
         }
     }
 
-    function unlend(address _wrapped, uint256 _amount, address _tokenHolder) public {
-        (address[] memory _targets, bytes[] memory _data) = lendingLogic.unlend(_wrapped, _amount, _tokenHolder);
+    function unlend(ILendingLogic _lendingLogic, address _wrapped, uint256 _amount, address _tokenHolder) public {
+        (address[] memory _targets, bytes[] memory _data) = _lendingLogic.unlend(_wrapped, _amount, _tokenHolder);
 
         for (uint8 i; i < _targets.length; i++) {
             (bool _success,) = _targets[i].call{value: 0}(_data[i]);

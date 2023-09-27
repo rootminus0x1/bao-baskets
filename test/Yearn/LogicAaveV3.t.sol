@@ -21,7 +21,7 @@ import "src/Interfaces/IAaveLendingPoolV2.sol";
 import {DateUtils} from "DateUtils/DateUtils.sol";
 
 import {Useful, Correlation} from "./Useful.sol";
-import {ChainState, Roller} from "./ChainState.sol";
+import {ChainState, ChainFork, Roller} from "./ChainState.sol";
 import {Deployed} from "test/Deployed.sol";
 import {ChainStateLending} from "./ChainStateLending.sol";
 import {TestLendingLogic} from "./TestLendingLogic.sol";
@@ -31,7 +31,6 @@ import {TestData} from "./TestData.t.sol";
 // fyi: AAVE V3 error codes: https://github.com/aave/aave-v3-core/blob/27a6d5c83560694210849d4abf09a09dec8da388/helpers/types.ts
 
 abstract contract TestAaveLending is ChainStateLending {
-    LendingManagerSimulator lms;
     ILendingLogic lendingLogic;
     address underlying;
     address wrapped;
@@ -46,13 +45,11 @@ abstract contract TestAaveLending is ChainStateLending {
         underlyingName = IEIP20(underlying).symbol();
         wrappedName = IEIP20(wrapped).symbol();
         pool = wrapped;
-        if (version == 3) lendingLogic = new LendingLogicAaveV3();
-        else lendingLogic = ILendingLogic(Deployed.LENDINGLOGICAAVE);
-        lms = new LendingManagerSimulator(lendingLogic);
-        wallet = address(lms);
+        lendingLogic = (version == 3) ? new LendingLogicAaveV3() : ILendingLogic(Deployed.LENDINGLOGICAAVE);
+        wallet = address(this);
     }
 
-    function test_getApr() public {
+    function test_getApr() public view {
         uint256 apr = lendingLogic.getAPRFromWrapped(wrapped);
         console.log("apr for %s = %s%%", wrappedName, Useful.toStringScaled(apr, 18 - 2));
     }
@@ -69,7 +66,7 @@ abstract contract TestAaveLending is ChainStateLending {
         assertGe(IERC20(underlying).balanceOf(wallet), amount, "not enough underlying in wallet");
         uint256 startPoolBalance = IERC20(underlying).balanceOf(pool);
 
-        lms.lend(underlying, amount, wallet);
+        LendingManagerSimulator.lend(lendingLogic, underlying, amount, wallet);
         //lend(amount);
         // TODO: check against the reported exchangeRate
         // these are the things that should have chhanged as a result of the lend
@@ -101,7 +98,7 @@ abstract contract TestAaveLending is ChainStateLending {
 
         // the unlend
         uint256 wrappedReturned1 = wrappedTransferred / 4;
-        lms.unlend(wrapped, wrappedReturned1, wallet);
+        LendingManagerSimulator.unlend(lendingLogic, wrapped, wrappedReturned1, wallet);
         //unlend(wrappedReturned1);
         uint256 underlyingReturned1 = wrappedReturned1; // * exchange rate
 
@@ -124,7 +121,7 @@ abstract contract TestAaveLending is ChainStateLending {
 
         // the second unlend
         uint256 wrappedReturned2 = wrappedTransferred - wrappedReturned1 - 1; // the rest - 1 for rounding error
-        lms.unlend(wrapped, wrappedReturned2, wallet);
+        LendingManagerSimulator.unlend(lendingLogic, wrapped, wrappedReturned2, wallet);
         // unlend(wrappedReturned2);
         uint256 underlyingReturned2 = wrappedReturned2;
 
@@ -193,7 +190,7 @@ contract TestAaveLendingAETHDAI is TestAaveLendingV3(Deployed.AETHDAI) {}
 
 contract TestAaveLendingAETHLUSD is TestAaveLendingV3(Deployed.AETHLUSD) {}
 
-contract TestLogicAaveV3Backtest is TestAaveLendingAETHLUSD {
+contract TestLogicAaveV3Backtest is ChainFork {
     struct TimeSeriesItem {
         string date;
         string value;
@@ -417,29 +414,65 @@ contract TestLogicAaveV3Backtest is TestAaveLendingAETHLUSD {
             TimeSeriesItem({date: "2023-09-20 12:00:00", value: "2.52%"}),
             TimeSeriesItem({date: "2023-09-21 12:00:00", value: "1.94%"})
         ];
-        string memory url = vm.envString("MAINNET_RPC_URL");
+        // block 18200000 is a couple of days beyond that
+        // string memory url = vm.envString("MAINNET_RPC_URL");
         // console.log("MAINNET_RPC_URL=%s", url);
+
+        /*
+        uint256 maxTimestamp = 0;
+        uint256 minTimestamp = type(uint256).max;
+        //console.log("minTS =%d", minTimestamp);
+        uint256[] memory timestamps = new uint256[](timeSeries.length);
+        for (uint256 i = 0; i < timeSeries.length; i++) {
+            uint256 ts = DateUtils.convertDateTimeStringToTimestamp(timeSeries[i].date);
+            if (ts > maxTimestamp) maxTimestamp = ts;
+            if (ts < minTimestamp) minTimestamp = ts;
+            //console.log("minTS =%d, %d", minTimestamp, ts);
+            timestamps[i] = ts;
+        }
+        */
+
+        Roller.UpperBound memory ubound = Roller.UpperBound(block.number, block.timestamp);
+        //console.log("lastBlock=%d", lastBlock);
+        //console.log("maxTS =%d", maxTimestamp);
+        //console.log("minTS =%d", minTimestamp);
+        //console.log("lastTS=%d", lastTimestamp);
+
+        console.log("Block, Roll count, Date, AAVe web, Bao logic");
 
         Correlation.Accumulator memory acc;
 
-        console.log("Date, Yearn, Bao");
+        uint256 base = vm.snapshot();
+
+        // Roller.rollForkToBlockContaining(vm, minTimestamp, lastBlock, lastTimestamp);
+        // LendingLogicAaveV3 baseLendingLogic = new LendingLogicAaveV3();
+        // vm.makePersistent(address(baseLendingLogic));
+
         for (uint256 i = 0; i < timeSeries.length; i++) {
-            uint256 fork = vm.createFork(url);
-            vm.selectFork(fork);
+            //uint256 fork = vm.createFork(url);
+            //vm.selectFork(fork);
+            if (i > 0) vm.revertTo(base);
 
-            uint256 dt = DateUtils.convertDateTimeStringToTimestamp(timeSeries[i].date);
-            Roller.rollForkToBlockContaining(vm, dt + 60 * 60, block.number, block.timestamp); // add an hour
+            uint256 ts = DateUtils.convertDateTimeStringToTimestamp(timeSeries[i].date);
+            uint256 rollCount = Roller.rollForkToBlockContaining(vm, ts, ubound);
 
-            LendingLogicAaveV3 lendingLogic = new LendingLogicAaveV3();
+            LendingLogicAaveV3 newLendingLogic = new LendingLogicAaveV3();
+            uint256 calculatedApr = newLendingLogic.getAPRFromWrapped(Deployed.AETHLUSD);
 
-            uint256 calculatedApr = lendingLogic.getAPRFromWrapped(wrapped);
             acc = Correlation.addXY(acc, calculatedApr, Useful.toUint256(timeSeries[i].value, 18));
 
             console.log(
-                "%s, %s, %s%%",
-                DateUtils.convertTimestampToDateTimeString(block.timestamp),
-                timeSeries[i].value,
-                Useful.toStringScaled(calculatedApr, 18 - 2)
+                "%d, %d, %s",
+                block.number,
+                rollCount,
+                Useful.concat(
+                    timeSeries[i].date,
+                    ", ",
+                    timeSeries[i].value,
+                    ", ",
+                    Useful.toStringScaled(calculatedApr, 18 - 2),
+                    "%"
+                )
             );
         }
         uint256 correlation = Correlation.pearsonCorrelation(acc);

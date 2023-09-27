@@ -89,9 +89,9 @@ contract TestChainState is Test {
 
     function test_6sec_forward() public {
         // go to the next block
-        vm.rollFork(chainState.fork(), startBlock + 1);
+        vm.rollFork(startBlock + 1);
         uint256 targetTimestamp = block.timestamp;
-        vm.rollFork(chainState.fork(), startBlock);
+        vm.rollFork(startBlock);
         chainState.rollForkBefore(targetTimestamp - 1);
         assertEq(block.number, startBlock, "forward next block -1 sec ");
     }
@@ -101,13 +101,14 @@ contract TestRoller is ChainFork {
     uint256 constant startBlock = 17790000; // = 2023-07-28 07:15:35 according to https://etherscan.io/block/17790000
     uint256 immutable startTimestamp;
     uint256 constant secsPerBlock = 12;
-    uint256 constant lastBlock = startBlock + 2 * 24 * 60 * 60 / secsPerBlock; // 2 days earlier @ 12 secs per block
-    uint256 immutable lastTimestamp;
+    Roller.UpperBound ubound;
 
     constructor() {
         // do last block first
-        vm.rollFork(lastBlock);
-        lastTimestamp = block.timestamp;
+        ubound.lastBlock = startBlock + 2 * 24 * 60 * 60 / secsPerBlock; // 2 days earlier @ 12 secs per block
+        vm.rollFork(ubound.lastBlock);
+        ubound.lastTimestamp = block.timestamp;
+
         vm.rollFork(startBlock);
         startTimestamp = block.timestamp;
     }
@@ -118,22 +119,22 @@ contract TestRoller is ChainFork {
 
     function rollForkBeforeWithError(uint256 targetTimestamp, bytes memory expectedError) public {
         vm.expectRevert(expectedError);
-        Roller.rollForkToBlockContaining(vm, targetTimestamp, lastBlock, lastTimestamp);
+        Roller.rollForkToBlockContaining(vm, targetTimestamp, ubound);
     }
 
     function rollForkBeforeWithError(string memory datetime, bytes memory expectedError) public {
         uint256 targetTimestamp = DateUtils.convertDateTimeStringToTimestamp(datetime);
         vm.expectRevert(expectedError);
-        Roller.rollForkToBlockContaining(vm, targetTimestamp, lastBlock, lastTimestamp);
+        Roller.rollForkToBlockContaining(vm, targetTimestamp, ubound);
     }
 
     function rollForkBefore(string memory datetime) public {
         uint256 targetTimestamp = DateUtils.convertDateTimeStringToTimestamp(datetime);
-        Roller.rollForkToBlockContaining(vm, targetTimestamp, lastBlock, lastTimestamp);
+        Roller.rollForkToBlockContaining(vm, targetTimestamp, ubound);
     }
 
     function rollForkBefore(uint256 targetTimestamp) public {
-        Roller.rollForkToBlockContaining(vm, targetTimestamp, lastBlock, lastTimestamp);
+        Roller.rollForkToBlockContaining(vm, targetTimestamp, ubound);
     }
 
     function test_zero() public {
