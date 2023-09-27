@@ -12,8 +12,8 @@ library Useful {
     bytes16 private constant _SYMBOLS = "0123456789abcdef";
 
     // the below is borrowed from https://github.com/ethereum/dapp-bin/pull/50
-    // it will be returned when its implemented :-)
     function sqrt(uint256 x) public pure returns (uint256 y) {
+        if (x == 0 || x == 1e18) return x;
         uint256 z = (x + 1) / 2;
         y = x;
         while (z < y) {
@@ -47,11 +47,55 @@ library Useful {
     }
 
     function concat(string memory a, string memory b, string memory c, string memory d)
-        public
+        external
         pure
         returns (string memory result)
     {
         result = string(abi.encodePacked(a, b, c, d)); // can use string.concat from 0.8.12 onwards
+    }
+
+    function concat(string memory a, string memory b, string memory c, string memory d, string memory e)
+        external
+        pure
+        returns (string memory result)
+    {
+        result = string(abi.encodePacked(string(abi.encodePacked(a, b, c, d)), e)); // can use string.concat from 0.8.12 onwards
+    }
+
+    function concat(
+        string memory a,
+        string memory b,
+        string memory c,
+        string memory d,
+        string memory e,
+        string memory f
+    ) external pure returns (string memory result) {
+        result = string(abi.encodePacked(string(abi.encodePacked(a, b, c, d)), e, f)); // can use string.concat from 0.8.12 onwards
+    }
+
+    function concat(
+        string memory a,
+        string memory b,
+        string memory c,
+        string memory d,
+        string memory e,
+        string memory f,
+        string memory g
+    ) external pure returns (string memory result) {
+        result = string(abi.encodePacked(string(abi.encodePacked(a, b, c, d)), e, f, g)); // can use string.concat from 0.8.12 onwards
+    }
+
+    function concat(
+        string memory a,
+        string memory b,
+        string memory c,
+        string memory d,
+        string memory e,
+        string memory f,
+        string memory g,
+        string memory h
+    ) external pure returns (string memory result) {
+        result = string(abi.encodePacked(string(abi.encodePacked(a, b, c, d)), e, f, g, h)); // can use string.concat from 0.8.12 onwards
     }
 
     function _length(uint256 value, uint256 base) private pure returns (uint256 digits) {
@@ -222,6 +266,7 @@ library Correlation {
 
     function addXY(Accumulator memory data, uint256 x, uint256 y) public pure returns (Accumulator memory result) {
         result = data;
+        //console.log("%d: (%d, %d)", data.n, x, y);
         result.n++;
         result.sumx += x;
         result.sumy += y;
@@ -234,9 +279,16 @@ library Correlation {
         // r = n * (sum(x*y)) - (sum(x) * sum(y))
         //     ------------------------------------
         //     sqrt((n * sum(x*x) - sum(x)**2)) * sqrt((n * sum(x*x) - sum(y)**2))
-        uint256 numer = data.n * data.sumxy - data.sumx * data.sumy;
-        uint256 denom = Useful.sqrt(data.n * data.sumxx - data.sumx * data.sumx)
-            * Useful.sqrt(data.n * data.sumyy - data.sumy * data.sumy);
-        r = numer * 1e18 / denom;
+        //console.log("n=%d", data.n);
+        //console.log("sumx=%d, sumy=%d", data.sumx, data.sumy);
+        //console.log("sumxx=%d, sumyy=%d, sumxy=%d", data.sumxx, data.sumyy, data.sumxy);
+        if (data.n > 2) {
+            uint256 numer = data.n * data.sumxy - data.sumx * data.sumy;
+            uint256 denom = Useful.sqrt(data.n * data.sumxx - data.sumx * data.sumx)
+                * Useful.sqrt(data.n * data.sumyy - data.sumy * data.sumy);
+            r = numer * 1e18 / denom;
+        } else {
+            r = 1e18;
+        }
     }
 }
