@@ -209,3 +209,34 @@ library Useful {
         }
     }
 }
+
+library Correlation {
+    struct Accumulator {
+        uint256 n;
+        uint256 sumx;
+        uint256 sumy;
+        uint256 sumxy;
+        uint256 sumxx;
+        uint256 sumyy;
+    }
+
+    function addXY(Accumulator memory data, uint256 x, uint256 y) public pure returns (Accumulator memory result) {
+        result = data;
+        result.n++;
+        result.sumx += x;
+        result.sumy += y;
+        result.sumxy += x * y;
+        result.sumxx += x * x;
+        result.sumyy += y * y;
+    }
+
+    function pearsonCorrelation(Accumulator memory data) public pure returns (uint256 r) {
+        // r = n * (sum(x*y)) - (sum(x) * sum(y))
+        //     ------------------------------------
+        //     sqrt((n * sum(x*x) - sum(x)**2)) * sqrt((n * sum(x*x) - sum(y)**2))
+        uint256 numer = data.n * data.sumxy - data.sumx * data.sumy;
+        uint256 denom = Useful.sqrt(data.n * data.sumxx - data.sumx * data.sumx)
+            * Useful.sqrt(data.n * data.sumyy - data.sumy * data.sumy);
+        r = numer * 1e18 / denom;
+    }
+}

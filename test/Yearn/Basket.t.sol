@@ -16,7 +16,9 @@ import {LendingManager} from "src/LendingManager.sol";
 import "src/Interfaces/IExperiPie.sol";
 import "src/Diamond/BasketFacet.sol";
 
-import {Deployed, ChainState, ChainStateLending} from "./Deployed.sol";
+import {ChainState} from "./ChainState.sol";
+import {ChainStateLending} from "./ChainStateLending.sol";
+import {Deployed} from "test/Deployed.sol";
 
 contract bTESTDeployerTest is ChainState {
     bytes32 private protocol = 0x0000000000000000000000000000000000000000000000000000000000000004;
@@ -35,7 +37,7 @@ contract bTESTDeployerTest is ChainState {
         // in any kind of non-infinite precision number representation
         // in a real deploy this must be in the wallet :-(
         BasketFacet basketFacet = new BasketFacet();
-        uint256 MIN_AMOUNT = basketFacet.MIN_AMOUNT();
+        //uint256 MIN_AMOUNT = basketFacet.MIN_AMOUNT();
 
         // get some dosh
         uint256 amount = 1e20;

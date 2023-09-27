@@ -18,10 +18,9 @@ contract LendingLogicAaveV3 is ILendingLogic {
     IPool public lendingPool;
     uint16 public referralCode;
 
-    constructor(address _lendingPool, uint16 _referralCode) {
-        require(_lendingPool != address(0), "LENDING_POOL_INVALID");
-        lendingPool = IPool(_lendingPool);
-        referralCode = _referralCode;
+    constructor() {
+        lendingPool = IPool(0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2);
+        referralCode = 0;
     }
 
     function getAPRFromWrapped(address _token) external view override returns (uint256) {

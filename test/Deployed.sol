@@ -5,10 +5,6 @@ pragma solidity >=0.5.1;
 import {Test} from "forge-std/Test.sol";
 import {console2 as console} from "forge-std/console2.sol";
 
-import {LendingRegistry} from "src/LendingRegistry.sol";
-
-import {ChainState} from "./ChainState.sol";
-
 library Deployed {
     // deployed addresses for BAO lending
     address public constant BAOMULTISIG = 0xFC69e0a5823E2AfCBEb8a35d33588360F1496a00;
@@ -38,6 +34,7 @@ library Deployed {
     bytes32 public constant PROTOCOLAAVE = 0x0000000000000000000000000000000000000000000000000000000000000002;
     bytes32 public constant PROTOCOLKASHI = 0x0000000000000000000000000000000000000000000000000000000000000003;
     bytes32 public constant PROTOCOLYEARN = 0x0000000000000000000000000000000000000000000000000000000000000004;
+    bytes32 public constant PROTOCOLAAVEV3 = 0x0000000000000000000000000000000000000000000000000000000000000005;
 
     // underlyings
     address public constant FEI = 0x956F47F50A910163D8BF957Cf5846D573E7f87CA;
@@ -97,14 +94,4 @@ library Deployed {
     address public constant YVTUSD = 0xFD0877d9095789cAF24c98F7CCe092fa8E120775;
 
     uint256 public constant blockWithCompoundAaveKashi = 17698530; // Jul-15-2023 11:36:35 AM +UTC
-        //uint256 public constant blockWithCompoundAaveKashi = 14860640;
-}
-
-contract ChainStateLending is ChainState {
-    LendingRegistry public lendingRegistry;
-
-    constructor() {
-        rollForkTo(Deployed.blockWithCompoundAaveKashi);
-        lendingRegistry = LendingRegistry(Deployed.LENDINGREGISTRY);
-    }
 }

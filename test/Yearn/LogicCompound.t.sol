@@ -9,7 +9,8 @@ import {console2 as console} from "forge-std/console2.sol";
 import {LendingRegistry} from "src/LendingRegistry.sol";
 import {LendingLogicCompound} from "src/Strategies/LendingLogicCompound.sol";
 
-import {Deployed, ChainState, ChainStateLending} from "./Deployed.sol";
+import {Deployed} from "test/Deployed.sol";
+import {ChainStateLending} from "./ChainStateLending.sol";
 import {TestLendingLogic} from "./TestLendingLogic.sol";
 import {TestData} from "./TestData.t.sol";
 

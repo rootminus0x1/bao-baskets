@@ -17,9 +17,10 @@ import {ILendingLogic} from "src/Interfaces/ILendingLogic.sol";
 
 import {DateUtils} from "DateUtils/DateUtils.sol";
 
-import {Useful} from "./Useful.sol";
+import {Useful, Correlation} from "./Useful.sol";
 import {ChainState, Roller} from "./ChainState.sol";
-import {Deployed, ChainStateLending} from "./Deployed.sol";
+import {Deployed} from "test/Deployed.sol";
+import {ChainStateLending} from "./ChainStateLending.sol";
 import {TestLendingLogic} from "./TestLendingLogic.sol";
 import {TestData} from "./TestData.t.sol";
 
@@ -102,44 +103,79 @@ contract TestYearnLogicBackTest is Test, LogicYearnLUSD {
         string memory url = vm.envString("MAINNET_RPC_URL");
         // console.log("MAINNET_RPC_URL=%s", url);
 
-        // TODO: break this pearson correlation out into Useful
-        uint256 n = timeSeries.length;
-        uint256 sumx = 0;
-        uint256 sumy = 0;
-        uint256 sumxy = 0;
-        uint256 sumxx = 0;
-        uint256 sumyy = 0;
+        Correlation.Accumulator memory acc;
+
         console.log("Date, Yearn, Bao");
-        for (uint256 i = 0; i < n; i++) {
+        for (uint256 i = 0; i < timeSeries.length; i++) {
             uint256 fork = vm.createFork(url);
             vm.selectFork(fork);
 
             uint256 dt = DateUtils.convertDateTimeStringToTimestamp(timeSeries[i].date);
-            Roller.rollForkBefore(vm, dt + 60 * 60); // add an hour
+            Roller.rollForkToBlockContaining(vm, dt + 60 * 60, block.number, block.timestamp); // add an hour
 
             createLogic();
 
-            uint256 apr = lendingLogicYearn.getAPRFromWrapped(wrapped);
+            uint256 calculatedApr = lendingLogicYearn.getAPRFromWrapped(wrapped);
+            acc = Correlation.addXY(acc, calculatedApr, Useful.toUint256(timeSeries[i].value, 18));
+
             console.log(
                 "%s, %s, %s%%",
                 DateUtils.convertTimestampToDateTimeString(block.timestamp),
                 timeSeries[i].value,
-                Useful.toStringScaled(apr, 18 - 2)
+                Useful.toStringScaled(calculatedApr, 18 - 2)
             );
-            uint256 x = apr;
-            uint256 y = Useful.toUint256(timeSeries[i].value, 18);
-            sumx += x;
-            sumy += y;
-            sumxy += x * y;
-            sumxx += x * x;
-            sumyy += y * y;
         }
-        // r = n * (sum(x*y)) - (sum(x) * sum(y))
-        //     ------------------------------------
-        //     sqrt((n * sum(x*x) - sum(x)**2)) * sqrt((n * sum(x*x) - sum(y)**2))
-        uint256 numer = n * sumxy - sumx * sumy;
-        uint256 denom = Useful.sqrt(n * sumxx - sumx * sumx) * Useful.sqrt(n * sumyy - sumy * sumy);
-        uint256 correlation = numer * 1e18 / denom;
+        uint256 correlation = Correlation.pearsonCorrelation(acc);
+        console.log("correlation=%s", Useful.toStringScaled(correlation, 18));
+        assertGt(correlation, 9 * 1e17, "good correlation");
+    }
+
+    function test_historicalRatesSnapshot() public {
+        //console.log("running historical rates test");
+        vm.skip(!vm.envOr("BACKTESTS", false));
+
+        TimeSeriesItem[10] memory timeSeries = [
+            TimeSeriesItem({date: "2023-03-11 22:25:00", value: "8.48%"}),
+            TimeSeriesItem({date: "2023-03-26 23:29:00", value: "7.21%"}),
+            TimeSeriesItem({date: "2023-04-10 23:34:00", value: "7.14%"}),
+            TimeSeriesItem({date: "2023-05-04 04:27:00", value: "4.97%"}),
+            TimeSeriesItem({date: "2023-05-19 11:39:00", value: "3.87%"}),
+            TimeSeriesItem({date: "2023-06-03 11:40:00", value: "3.16%"}),
+            TimeSeriesItem({date: "2023-06-18 11:40:00", value: "2.70%"}),
+            TimeSeriesItem({date: "2023-07-03 11:41:00", value: "2.72%"}),
+            TimeSeriesItem({date: "2023-07-18 11:43:00", value: "3.07%"}),
+            TimeSeriesItem({date: "2023-08-02 12:14:00", value: "2.63%"})
+        ];
+        string memory url = vm.envString("MAINNET_RPC_URL");
+        // console.log("MAINNET_RPC_URL=%s", url);
+        uint256 fork = vm.createFork(url);
+        vm.selectFork(fork);
+        uint256 lastBlock = block.number;
+        uint256 lastTimestamp = block.timestamp;
+        uint256 cleanChain = vm.snapshot();
+
+        Correlation.Accumulator memory acc;
+
+        console.log("Date, Yearn, Bao");
+        for (uint256 i = 0; i < timeSeries.length; i++) {
+            if (i > 0) vm.revertTo(cleanChain);
+
+            uint256 dt = DateUtils.convertDateTimeStringToTimestamp(timeSeries[i].date);
+            Roller.rollForkToBlockContaining(vm, dt + 60 * 60, lastBlock, lastTimestamp); // add an hour
+
+            createLogic();
+
+            uint256 calculatedApr = lendingLogicYearn.getAPRFromWrapped(wrapped);
+            acc = Correlation.addXY(acc, calculatedApr, Useful.toUint256(timeSeries[i].value, 18));
+
+            console.log(
+                "%s, %s, %s%%",
+                DateUtils.convertTimestampToDateTimeString(block.timestamp),
+                timeSeries[i].value,
+                Useful.toStringScaled(calculatedApr, 18 - 2)
+            );
+        }
+        uint256 correlation = Correlation.pearsonCorrelation(acc);
         console.log("correlation=%s", Useful.toStringScaled(correlation, 18));
         assertGt(correlation, 9 * 1e17, "good correlation");
     }
@@ -166,9 +202,11 @@ contract TestYearnLogicBackTest is Test, LogicYearnLUSD {
         // work out how many blocks to go per sample Period
         uint256 fork = vm.createFork(url);
         vm.selectFork(fork);
-        Roller.rollForkBefore(vm, finishTimestamp);
+        uint256 lastBlock = block.number;
+        uint256 lastTimestamp = block.timestamp;
+        Roller.rollForkToBlockContaining(vm, finishTimestamp, lastBlock, lastTimestamp);
         uint256 finishBlock = block.number;
-        Roller.rollForkBefore(vm, startTimestamp);
+        Roller.rollForkToBlockContaining(vm, startTimestamp, lastBlock, lastTimestamp);
         uint256 startBlock = block.number;
 
         uint256 blocksPerSamplePeriod = (finishBlock - startBlock) / numberOfSamples;
@@ -226,7 +264,7 @@ abstract contract TestLendingLogicYearn is LogicYearn, TestLendingLogic {
         assertApproxEqAbs(apr, expectedApr, 10000, Useful.concat(underlyingName, ": APR for block 17698530")); // ignore the last 4 digits
     }
 
-    function test_getStrategyDetails() public {
+    function test_getStrategyDetails() public view {
         IYToken yv = IYToken(wrapped);
         console.log("---");
         for (uint256 s = 0; s < 25; s++) {

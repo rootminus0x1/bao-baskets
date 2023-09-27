@@ -6,11 +6,11 @@ import "forge-std/Test.sol";
 
 // TODO: incorporate this in the LogicYearn & LogicCompound tests
 
-abstract contract LendingManagerSimulator {
-    ILendingLogic public lendingLogic;
+contract LendingManagerSimulator {
+    ILendingLogic private lendingLogic;
 
-    constructor(address _lendingLogic) {
-        lendingLogic = ILendingLogic(_lendingLogic);
+    constructor(ILendingLogic _lendingLogic) {
+        lendingLogic = _lendingLogic;
     }
 
     function lend(address _underlying, uint256 _amount, address _tokenHolder) public {

@@ -6,9 +6,11 @@ pragma experimental ABIEncoderV2;
 
 import "forge-std/Script.sol";
 
-import {LendingRegistry} from "src/LendingRegistry.sol";
 import {LendingLogicAaveV3} from "src/Strategies/LendingLogicAaveV3.sol";
+import {LendingRegistrySetup} from "./LendingRegistry.s.sol";
+import {Deployed} from "test/Deployed.sol";
 
+/*
 contract AaveV3Constants {
     address internal constant AAVELENDINGPOOLV3 = 0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2;
 
@@ -18,21 +20,22 @@ contract AaveV3Constants {
     address internal constant LENDINGREGISTRY = 0x08a2b7D713e388123dc6678168656659d297d397;
     address internal constant BAOMULTISIG = 0xFC69e0a5823E2AfCBEb8a35d33588360F1496a00;
 
-    address internal constant underlying = LUSD;
-    address internal constant wrapped = AETHLUSD;
+    //address internal constant underlying = LUSD;
+    //address internal constant wrapped = AETHLUSD;
     bytes32 internal constant protocol = 0x0000000000000000000000000000000000000000000000000000000000000005;
 }
+*/
 
 /* 
 deploy the lending logic yearn
 $ forge script script/bTEST.s.sol:LendingLogicAaveV3Script --fork-url $MAINNET_RPC_URL --broadcast --slow --verify
 */
-contract LendingLogicAaveV3Script is Script, AaveV3Constants {
+contract LendingLogicAaveV3Script is Script {
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         vm.startBroadcast(deployerPrivateKey);
 
-        LendingLogicAaveV3 strategy = new LendingLogicAaveV3(AAVELENDINGPOOLV3, 0);
+        LendingLogicAaveV3 strategy = new LendingLogicAaveV3();
 
         vm.stopBroadcast();
 
@@ -44,18 +47,11 @@ contract LendingLogicAaveV3Script is Script, AaveV3Constants {
 transactions for the multisig - results in broadcast/bTEST.s.sol/1/dry-run/run-latest.json
 $ forge script script/bTEST.s.sol:BTESTYearnLUSDmultisig --sig "run(address strategy)"  "0x?" --rpc-url $MAINNET_RPC_URL
 */
-contract AaveV3LUSDmultisig is Script, AaveV3Constants {
+contract AaveV3LUSDmultisig is Script {
     function run(address strategy) external {
-        vm.startBroadcast(BAOMULTISIG);
+        vm.startBroadcast(Deployed.BAOMULTISIG);
 
-        // create the strategy
-        LendingRegistry lendingRegistry = LendingRegistry(LENDINGREGISTRY);
-
-        // set up the lendingRegistry with the strategy
-        lendingRegistry.setWrappedToProtocol(wrapped, protocol);
-        lendingRegistry.setWrappedToUnderlying(wrapped, underlying);
-        lendingRegistry.setProtocolToLogic(protocol, strategy);
-        lendingRegistry.setUnderlyingToProtocolWrapped(underlying, protocol, wrapped);
+        LendingRegistrySetup.addLendingLogic(strategy, Deployed.PROTOCOLAAVEV3, Deployed.AETHLUSD, Deployed.LUSD);
 
         vm.stopBroadcast();
     }

@@ -10,7 +10,8 @@ import {ILendingLogic} from "src/Interfaces/ILendingLogic.sol";
 import {IERC20} from "@openzeppelin/token/ERC20/IERC20.sol";
 import {IEIP20} from "src/Interfaces/IEIP20.sol";
 
-import {Deployed, ChainStateLending} from "./Deployed.sol";
+import {Deployed} from "test/Deployed.sol";
+import {ChainStateLending} from "./ChainStateLending.sol";
 import {TestData} from "./TestData.t.sol";
 import {Useful} from "./Useful.sol";
 
