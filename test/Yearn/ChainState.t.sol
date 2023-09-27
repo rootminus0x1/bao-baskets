@@ -89,9 +89,9 @@ contract TestChainState is Test {
 
     function test_6sec_forward() public {
         // go to the next block
-        vm.rollFork(startBlock + 1);
+        chainState.rollForkTo(startBlock + 1);
         uint256 targetTimestamp = block.timestamp;
-        vm.rollFork(startBlock);
+        chainState.rollForkTo(startBlock);
         chainState.rollForkBefore(targetTimestamp - 1);
         assertEq(block.number, startBlock, "forward next block -1 sec ");
     }
