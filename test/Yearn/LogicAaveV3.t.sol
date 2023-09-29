@@ -414,50 +414,34 @@ contract TestLogicAaveV3Backtest is ChainFork {
             TimeSeriesItem({blockNumber: 18176961, date: "2023-09-20 12:00:00", value: "2.52%"}),
             TimeSeriesItem({blockNumber: 18184109, date: "2023-09-21 12:00:00", value: "1.94%"})
         ];
-        // block 18200000 is a couple of days beyond that
-        // string memory url = vm.envString("MAINNET_RPC_URL");
-        // console.log("MAINNET_RPC_URL=%s", url);
-
-        /*
-        uint256 maxTimestamp = 0;
-        uint256 minTimestamp = type(uint256).max;
-        //console.log("minTS =%d", minTimestamp);
-        uint256[] memory timestamps = new uint256[](timeSeries.length);
-        for (uint256 i = 0; i < timeSeries.length; i++) {
-            uint256 ts = DateUtils.convertDateTimeStringToTimestamp(timeSeries[i].date);
-            if (ts > maxTimestamp) maxTimestamp = ts;
-            if (ts < minTimestamp) minTimestamp = ts;
-            //console.log("minTS =%d, %d", minTimestamp, ts);
-            timestamps[i] = ts;
-        }
-        */
-
-        Roller.UpperBound memory ubound = Roller.UpperBound(block.number, block.timestamp);
-        //console.log("lastBlock=%d", lastBlock);
-        //console.log("maxTS =%d", maxTimestamp);
-        //console.log("minTS =%d", minTimestamp);
-        //console.log("lastTS=%d", lastTimestamp);
-
-        console.log("Block, Roll count, Date, AAVe web, Bao logic");
-
-        Correlation.Accumulator memory acc;
+        // find the right bound, just beyond the end of the last timeseries date, for all subsequent searches
+        Roller.Bounds memory bounds = Roller.Bounds(0, 0, block.number, block.timestamp);
+        Roller.rollForkToBlockContaining(
+            vm, DateUtils.convertDateTimeStringToTimestamp(timeSeries[timeSeries.length - 1].date) + 100, bounds
+        );
+        bounds.rightBlock = block.number;
+        bounds.rightTimestamp = block.timestamp;
 
         uint256 base = vm.snapshot();
 
-        // Roller.rollForkToBlockContaining(vm, minTimestamp, lastBlock, lastTimestamp);
-        // LendingLogicAaveV3 baseLendingLogic = new LendingLogicAaveV3();
-        // vm.makePersistent(address(baseLendingLogic));
+        console.log("Block, Roll count, Date, AAVe web, Bao logic");
+        Correlation.Accumulator memory acc;
 
         for (uint256 i = 0; i < timeSeries.length; i++) {
-            //uint256 fork = vm.createFork(url);
-            //vm.selectFork(fork);
             if (i > 0) vm.revertTo(base);
 
-            uint256 ts = DateUtils.convertDateTimeStringToTimestamp(timeSeries[i].date);
-            uint256 rollCount = Roller.rollForkToBlockContaining(vm, ts, ubound);
+            uint256 rollCount = Roller.rollForkToBlockContaining(
+                vm, DateUtils.convertDateTimeStringToTimestamp(timeSeries[i].date), bounds
+            );
+
+            // the dates are increasing so we can set the left bound to the current block
+            bounds.leftBlock = block.number;
+            bounds.leftTimestamp = block.timestamp;
+
             // if the block number is available
             // vm.rollFork(timeSeries[i].blockNumber);
             // uint256 rollCount = 1;
+
             LendingLogicAaveV3 newLendingLogic = new LendingLogicAaveV3();
             uint256 calculatedApr = newLendingLogic.getAPRFromWrapped(Deployed.AETHLUSD);
 

@@ -8,6 +8,7 @@ import {console2 as console} from "forge-std/console2.sol";
 import {DateUtils} from "DateUtils/DateUtils.sol";
 import {LoggingTest} from "./LoggingTest.sol";
 import {ChainState, ChainFork, Roller} from "./ChainState.sol";
+import {Useful} from "./Useful.sol";
 
 contract TestChainState is Test {
     ChainState chainState = new ChainState();
@@ -101,13 +102,13 @@ contract TestRoller is ChainFork {
     uint256 constant startBlock = 17790000; // = 2023-07-28 07:15:35 according to https://etherscan.io/block/17790000
     uint256 immutable startTimestamp;
     uint256 constant secsPerBlock = 12;
-    Roller.UpperBound ubound;
+    Roller.Bounds bounds;
 
     constructor() {
         // do last block first
-        ubound.lastBlock = startBlock + 2 * 24 * 60 * 60 / secsPerBlock; // 2 days earlier @ 12 secs per block
-        vm.rollFork(ubound.lastBlock);
-        ubound.lastTimestamp = block.timestamp;
+        bounds.rightBlock = startBlock + 2 * 24 * 60 * 60 / secsPerBlock; // 2 days earlier @ 12 secs per block
+        vm.rollFork(bounds.rightBlock);
+        bounds.rightTimestamp = block.timestamp;
 
         vm.rollFork(startBlock);
         startTimestamp = block.timestamp;
@@ -119,22 +120,22 @@ contract TestRoller is ChainFork {
 
     function rollForkBeforeWithError(uint256 targetTimestamp, bytes memory expectedError) public {
         vm.expectRevert(expectedError);
-        Roller.rollForkToBlockContaining(vm, targetTimestamp, ubound);
+        Roller.rollForkToBlockContaining(vm, targetTimestamp, bounds);
     }
 
     function rollForkBeforeWithError(string memory datetime, bytes memory expectedError) public {
         uint256 targetTimestamp = DateUtils.convertDateTimeStringToTimestamp(datetime);
         vm.expectRevert(expectedError);
-        Roller.rollForkToBlockContaining(vm, targetTimestamp, ubound);
+        Roller.rollForkToBlockContaining(vm, targetTimestamp, bounds);
     }
 
-    function rollForkBefore(string memory datetime) public {
+    function rollForkBefore(string memory datetime) public returns (uint256) {
         uint256 targetTimestamp = DateUtils.convertDateTimeStringToTimestamp(datetime);
-        Roller.rollForkToBlockContaining(vm, targetTimestamp, ubound);
+        return Roller.rollForkToBlockContaining(vm, targetTimestamp, bounds);
     }
 
-    function rollForkBefore(uint256 targetTimestamp) public {
-        Roller.rollForkToBlockContaining(vm, targetTimestamp, ubound);
+    function rollForkBefore(uint256 targetTimestamp) public returns (uint256) {
+        return Roller.rollForkToBlockContaining(vm, targetTimestamp, bounds);
     }
 
     function test_zero() public {
@@ -206,5 +207,36 @@ contract TestRoller is ChainFork {
         vm.rollFork(startBlock);
         rollForkBefore(targetTimestamp - 1);
         assertEq(block.number, startBlock, "forward next block -1 sec ");
+    }
+
+    function _wholeBlock(uint256 expectedBlock, uint256 expectedBlockTimestamp, bool forward) private {
+        for (uint256 i = 0; i < 13; i++) {
+            vm.rollFork(forward ? expectedBlock + 100 : expectedBlock - 100);
+            rollForkBefore(expectedBlockTimestamp + i);
+            assertEq(
+                block.number,
+                expectedBlock + ((i == 12) ? 1 : 0),
+                Useful.concat(
+                    "move ", forward ? "forward" : "backward", " goes to the right place: ", Useful.toString(i)
+                )
+            );
+        }
+    }
+
+    function test_boundaries() public {
+        // exact block & timestamp
+        uint256 expectedBlock = 16683843;
+        vm.rollFork(expectedBlock);
+        uint256 expectedTimestamp = block.timestamp;
+
+        uint256 rollCount = rollForkBefore(expectedTimestamp); // zero move
+        assertEq(rollCount, 0, "zero move has zero rolls");
+        assertEq(block.number, expectedBlock, "zero move stays at the same block");
+
+        // exact timestamp
+        // roll backward
+        _wholeBlock(expectedBlock, expectedTimestamp, true);
+        // then forward
+        _wholeBlock(expectedBlock, expectedTimestamp, false);
     }
 }
