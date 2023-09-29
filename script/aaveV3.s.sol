@@ -7,7 +7,7 @@ pragma experimental ABIEncoderV2;
 import "forge-std/Script.sol";
 
 import {LendingLogicAaveV3} from "src/Strategies/LendingLogicAaveV3.sol";
-import {LendingRegistrySetup} from "./LendingRegistry.s.sol";
+import {LendingRegistry} from "src/LendingRegistry.sol";
 import {Deployed} from "test/Deployed.sol";
 
 /*
@@ -28,7 +28,7 @@ contract AaveV3Constants {
 
 /* 
 deploy the lending logic yearn
-$ forge script script/bTEST.s.sol:LendingLogicAaveV3Script --fork-url $MAINNET_RPC_URL --broadcast --slow --verify
+$ forge script script/aaveV3.s.sol:LendingLogicAaveV3Script --fork-url $MAINNET_RPC_URL --broadcast --slow --verify
 */
 contract LendingLogicAaveV3Script is Script {
     function run() external {
@@ -44,14 +44,24 @@ contract LendingLogicAaveV3Script is Script {
 }
 
 /* 
-transactions for the multisig - results in broadcast/bTEST.s.sol/1/dry-run/run-latest.json
-$ forge script script/bTEST.s.sol:BTESTYearnLUSDmultisig --sig "run(address strategy)"  "0x?" --rpc-url $MAINNET_RPC_URL
+transactions for the multisig - results in broadcast/aaveV3.s.sol/1/dry-run/run-latest.json
+$ forge script script/aaveV3.s.sol:AaveV3LUSDmultisig --sig "run(address strategy)"  "0x84bCF7815A9C29E1f69Fb75055F68D50EFAdD5e7" --rpc-url $MAINNET_RPC_URL
 */
 contract AaveV3LUSDmultisig is Script {
     function run(address strategy) external {
         vm.startBroadcast(Deployed.BAOMULTISIG);
 
-        LendingRegistrySetup.addLendingLogic(strategy, Deployed.PROTOCOLAAVEV3, Deployed.AETHLUSD, Deployed.LUSD);
+        LendingRegistry lendingRegistry = LendingRegistry(Deployed.LENDINGREGISTRY);
+
+        bytes32 protocol = Deployed.PROTOCOLAAVEV3;
+        address wrapped = Deployed.AETHLUSD;
+        address underlying = Deployed.LUSD;
+
+        // set up the lendingRegistry with the strategy
+        lendingRegistry.setWrappedToProtocol(wrapped, protocol);
+        lendingRegistry.setWrappedToUnderlying(wrapped, underlying);
+        lendingRegistry.setProtocolToLogic(protocol, strategy);
+        lendingRegistry.setUnderlyingToProtocolWrapped(underlying, protocol, wrapped);
 
         vm.stopBroadcast();
     }
